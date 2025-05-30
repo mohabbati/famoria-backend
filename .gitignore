@@ -1,0 +1,48 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ASP.NET temp files
+*.dbmdl
+*.dbproj.schemaview
+*.pdb
+
+# Log files
+*.log
+
+# Others
+*.vspscc
+*.vssscc
+*.ncrunch*
+_ReSharper*/
+[Tt]est[Rr]esult*/
+TestResult.xml
+
+# Docker
+**/docker-compose.override.yml
+**/.env
+
+# Aspire
+.aspire/
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio
+/.vs
+
+# dotnet secrets
+secrets.json
+
+# Local Cosmos DB / emulator / ollama data
+cosmosdb_emulator/
+ollama_models/

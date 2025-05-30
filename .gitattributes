@@ -1,0 +1,17 @@
+# Ensure consistent line endings
+* text=auto
+
+# Treat C# files as text
+*.cs text diff=csharp
+
+# Normalize JSON, YAML, XML as text
+*.json text
+*.yml text
+*.yaml text
+*.xml text
+
+# Exclude binary diffing
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
