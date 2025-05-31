@@ -1,2 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Azure.Storage.Blobs" Version="9.3.0" />
+        <PackageReference Include="Aspire.Microsoft.Azure.Cosmos" Version="9.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Famoria.Application\Famoria.Application.csproj" />
+    </ItemGroup>
+
 </Project>

@@ -14,5 +14,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\aspire\Famoria.ServiceDefaults\Famoria.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Famoria.Infrastructure\Famoria.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
