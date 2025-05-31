@@ -6,7 +6,6 @@ public class EmailPayload : FamilyItemPayload
     public required DateTime ReceivedAt { get; set; }
     public required string Subject { get; set; }
     public required string Sender { get; set; }
-    public string? HtmlBody { get; set; }
-    public string? TextBody { get; set; }
-    public List<string>? Attachments { get; set; }
+    public required string EmlBlobPath { get; set; } // e.g., /{FamilyId}/{ItemId}/original.eml
+    public List<string>? AttachmentBlobPaths { get; set; } // /{FamilyId}/{ItemId}/attachments/{filename.ext}
 }
