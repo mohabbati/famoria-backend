@@ -8,9 +8,8 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 
-AppSettings appSettings = builder.Configuration.Get<AppSettings>()!;
 builder.AddApplication();
-builder.AddInfrastructure(appSettings);
+builder.AddInfrastructure(builder.Configuration.Get<AppSettings>()!);
 
 
 builder.Services.AddControllers();
