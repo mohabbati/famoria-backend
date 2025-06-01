@@ -131,4 +131,23 @@ public class GmailEmailFetcherTests
 
         Assert.True(callCount >= 1); // Should retry at least once
     }
+
+    [Fact]
+    public async Task GetNewEmailsAsync_ReturnsEmptyList_WhenNoMessages()
+    {
+        var retryPolicy = Policy.NoOpAsync();
+        var inboxMock = new Mock<IMailFolder>();
+        var uids = new List<UniqueId>();
+        _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _imapClientMock.Setup(x => x.AuthenticateAsync(It.IsAny<SaslMechanism>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _imapClientMock.Setup(x => x.GetInboxAsync(It.IsAny<CancellationToken>())).ReturnsAsync(inboxMock.Object);
+        _imapClientMock.Setup(x => x.SearchAsync(inboxMock.Object, It.IsAny<SearchQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(uids);
+        _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var fetcher = CreateFetcher(retryPolicy);
+
+        var result = await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
+
+        Assert.Empty(result);
+    }
 }
