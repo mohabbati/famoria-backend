@@ -1,7 +1,10 @@
-using System.Reflection;
-
+using Famoria.Application.Interfaces;
+using Famoria.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Polly;
+using Polly.Retry;
+using System.Reflection;
 
 namespace Famoria.Application;
 
@@ -10,7 +13,28 @@ public static class ConfigureApplication
     public static IHostApplicationBuilder AddApplication(this IHostApplicationBuilder builder)
     {
         builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+        builder.Services.AddScoped<IEmailFetcher, GmailEmailFetcher>();
 
         return builder;
+    }
+
+    public static void AddPolly(IHostApplicationBuilder builder)
+    {
+        builder.Services.AddSingleton<AsyncRetryPolicy>(
+                    Policy
+                        .Handle<MailKit.Net.Imap.ImapProtocolException>()
+                        .Or<MailKit.CommandException>()
+                        .Or<IOException>()
+                        .Or<System.Net.Sockets.SocketException>()
+                        .Or<MailKit.Security.AuthenticationException>()
+                        .WaitAndRetryAsync(
+                            retryCount: 3,
+                            sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+                            onRetry: (exception, timespan, retryCount, context) =>
+                            {
+                                // Logging is handled in the consumer
+                            }
+                        )
+                );
     }
 }
