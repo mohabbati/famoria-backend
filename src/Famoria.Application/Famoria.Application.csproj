@@ -1,6 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
+        <PackageReference Include="Aspire.Azure.Storage.Blobs" Version="9.3.0" />
+        <PackageReference Include="Aspire.Microsoft.Azure.Cosmos" Version="9.3.0" />
+        <PackageReference Include="MediatR" Version="12.5.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.5" />
     </ItemGroup>
