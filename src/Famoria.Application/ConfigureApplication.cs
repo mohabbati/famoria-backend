@@ -13,13 +13,15 @@ public static class ConfigureApplication
     public static IHostApplicationBuilder AddApplication(this IHostApplicationBuilder builder)
     {
         builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-        builder.Services.AddScoped<IEmailFetcher, GmailEmailFetcher>();
-
+        
         return builder;
     }
 
-    public static void AddPolly(IHostApplicationBuilder builder)
+    public static void AddEmailFetcherWorker(IHostApplicationBuilder builder)
     {
+        builder.Services.AddScoped<IEmailFetcher, GmailEmailFetcher>();
+        builder.Services.AddTransient<IImapClientWrapper, ImapClientWrapper>();
+
         builder.Services.AddSingleton<AsyncRetryPolicy>(
                     Policy
                         .Handle<MailKit.Net.Imap.ImapProtocolException>()
