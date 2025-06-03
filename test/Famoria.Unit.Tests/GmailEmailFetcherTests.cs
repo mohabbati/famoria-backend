@@ -150,4 +150,72 @@ public class GmailEmailFetcherTests
 
         Assert.Empty(result);
     }
+
+    [Fact]
+    public async Task GetNewEmailsAsync_ReturnsAllEmails_WhenMultipleFound()
+    {
+        var retryPolicy = Policy.NoOpAsync();
+        var inboxMock = new Mock<IMailFolder>();
+        var uids = new List<UniqueId> { new UniqueId(1), new UniqueId(2) };
+        var message1 = new MimeMessage();
+        message1.Subject = "Test1";
+        var message2 = new MimeMessage();
+        message2.Subject = "Test2";
+        _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _imapClientMock.Setup(x => x.AuthenticateAsync(It.IsAny<SaslMechanism>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _imapClientMock.Setup(x => x.GetInboxAsync(It.IsAny<CancellationToken>())).ReturnsAsync(inboxMock.Object);
+        _imapClientMock.Setup(x => x.SearchAsync(inboxMock.Object, It.IsAny<SearchQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(uids);
+        _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[0], It.IsAny<CancellationToken>())).ReturnsAsync(message1);
+        _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[1], It.IsAny<CancellationToken>())).ReturnsAsync(message2);
+        _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var fetcher = CreateFetcher(retryPolicy);
+
+        var result = await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
+
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task GetNewEmailsAsync_ReturnsRawEmlContent()
+    {
+        var retryPolicy = Policy.NoOpAsync();
+        var inboxMock = new Mock<IMailFolder>();
+        var uids = new List<UniqueId> { new UniqueId(1) };
+        var message = new MimeMessage();
+        message.Subject = "TestSubject";
+        message.Body = new TextPart("plain") { Text = "Hello world" };
+        _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _imapClientMock.Setup(x => x.AuthenticateAsync(It.IsAny<SaslMechanism>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _imapClientMock.Setup(x => x.GetInboxAsync(It.IsAny<CancellationToken>())).ReturnsAsync(inboxMock.Object);
+        _imapClientMock.Setup(x => x.SearchAsync(inboxMock.Object, It.IsAny<SearchQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(uids);
+        _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[0], It.IsAny<CancellationToken>())).ReturnsAsync(message);
+        _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var fetcher = CreateFetcher(retryPolicy);
+        var result = await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Contains("TestSubject", result[0]);
+        Assert.Contains("Hello world", result[0]);
+    }
+
+    [Fact]
+    public async Task GetNewEmailsAsync_AlwaysDisconnects_OnError()
+    {
+        var retryPolicy = Policy.NoOpAsync();
+        var inboxMock = new Mock<IMailFolder>();
+        var uids = new List<UniqueId> { new UniqueId(1) };
+        _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _imapClientMock.Setup(x => x.AuthenticateAsync(It.IsAny<SaslMechanism>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _imapClientMock.Setup(x => x.GetInboxAsync(It.IsAny<CancellationToken>())).ReturnsAsync(inboxMock.Object);
+        _imapClientMock.Setup(x => x.SearchAsync(inboxMock.Object, It.IsAny<SearchQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(uids);
+        _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[0], It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Message error"));
+        _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var fetcher = CreateFetcher(retryPolicy);
+        await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
+
+        _imapClientMock.Verify(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

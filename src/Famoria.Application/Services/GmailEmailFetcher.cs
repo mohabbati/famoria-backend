@@ -23,50 +23,47 @@ public class GmailEmailFetcher : IEmailFetcher
 
     public async Task<List<string>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken)
     {
-        var correlationId = Guid.NewGuid().ToString();
-        var context = new Context();
-        context["CorrelationId"] = correlationId;
-
         return await _retryPolicy.ExecuteAsync(async (ctx, ct) =>
         {
             var emlList = new List<string>();
+            var correlationId = Guid.NewGuid().ToString();
             try
             {
-                await _imapClient.ConnectAsync("imap.gmail.com", 993, SecureSocketOptions.SslOnConnect, ct);
+                await _imapClient.ConnectAsync("imap.gmail.com", 993, SecureSocketOptions.SslOnConnect, ct).ConfigureAwait(false);
                 var sasl = new SaslMechanismOAuth2(userEmail, accessToken);
-                await _imapClient.AuthenticateAsync(sasl, ct);
-                var inbox = await _imapClient.GetInboxAsync(ct);
+                await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+                var inbox = await _imapClient.GetInboxAsync(ct).ConfigureAwait(false);
 
                 // Only fetch emails received after 'since'
                 var query = SearchQuery.NotSeen.Or(SearchQuery.Recent).Or(SearchQuery.DeliveredAfter(since));
-                var uids = await _imapClient.SearchAsync(inbox, query, ct);
+                var uids = await _imapClient.SearchAsync(inbox, query, ct).ConfigureAwait(false);
 
                 foreach (var uid in uids)
                 {
                     try
                     {
-                        var message = await _imapClient.GetMessageAsync(inbox, uid, ct);
+                        var message = await _imapClient.GetMessageAsync(inbox, uid, ct).ConfigureAwait(false);
                         using var stream = new MemoryStream();
-                        await message.WriteToAsync(stream, ct);
+                        await message.WriteToAsync(stream, ct).ConfigureAwait(false);
                         var emlContent = Encoding.UTF8.GetString(stream.ToArray());
                         emlList.Add(emlContent);
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Failed to fetch or process message UID {Uid}: {Message} (CorrelationId: {CorrelationId})",
-                            uid, ex.Message, context.ContainsKey("CorrelationId") ? context["CorrelationId"] : "N/A");
+                            uid, ex.Message, correlationId);
                     }
                 }
 
-                await _imapClient.DisconnectAsync(true, ct);
+                await _imapClient.DisconnectAsync(true, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching emails for {UserEmail}: {Message} (CorrelationId: {CorrelationId})",
-                    userEmail, ex.Message, context.ContainsKey("CorrelationId") ? context["CorrelationId"] : "N/A");
+                    userEmail, ex.Message, correlationId);
                 throw;
             }
             return emlList;
-        }, context, cancellationToken);
+        }, new Context(), cancellationToken).ConfigureAwait(false);
     }
 } 
