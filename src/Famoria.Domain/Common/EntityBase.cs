@@ -8,4 +8,4 @@ public abstract class EntityBase<TKey>
     public TKey Id { get; set; } = default!;
 }
 
-public abstract class EntityBase : EntityBase<Guid>;
+public abstract class EntityBase : EntityBase<string>;

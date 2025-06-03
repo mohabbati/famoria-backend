@@ -1,18 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Famoria.Application.Services;
 using Famoria.Application.Interfaces;
+using Famoria.Application.Services;
+using MailKit;
+using MailKit.Search;
+using MailKit.Security;
 using Microsoft.Extensions.Logging;
+using MimeKit;
 using Moq;
 using Polly;
-using Polly.Retry;
-using Xunit;
-using MailKit;
-using MailKit.Security;
-using MailKit.Search;
-using MimeKit;
+
+namespace Famoria.Unit.Tests.Services;
 
 public class GmailEmailFetcherTests
 {
