@@ -19,9 +19,8 @@ public class FetchEmailsHandler : IRequestHandler<FetchEmailsCommand, int>
 
     public async Task<int> Handle(FetchEmailsCommand request, CancellationToken cancellationToken)
     {
-        // For demo, fetch emails since 7 days ago. Adjust as needed.
-        var since = DateTime.UtcNow.AddDays(-7);
-        var emails = await _emailFetcher.GetNewEmailsAsync(request.UserEmail, request.AccessToken, since, cancellationToken);
+        // Use the 'Since' value from the command
+        var emails = await _emailFetcher.GetNewEmailsAsync(request.UserEmail, request.AccessToken, request.Since, cancellationToken);
         int successCount = 0;
         foreach (var eml in emails)
         {

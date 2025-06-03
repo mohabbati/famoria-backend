@@ -2,4 +2,4 @@ using MediatR;
 
 namespace Famoria.Application.Features.FetchEmails;
 
-public record FetchEmailsCommand(string FamilyId, string UserEmail, string AccessToken) : IRequest<int>;
+public record FetchEmailsCommand(string FamilyId, string UserEmail, string AccessToken, DateTime Since) : IRequest<int>;

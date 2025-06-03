@@ -3,7 +3,7 @@ using Famoria.Email.Fetcher.Worker;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<EmailFetcherWorker>();
 
 var host = builder.Build();
 host.Run();

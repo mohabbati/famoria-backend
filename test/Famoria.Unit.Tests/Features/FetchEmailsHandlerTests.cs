@@ -11,6 +11,7 @@ public class FetchEmailsHandlerTests
     private readonly Mock<IEmailPersistenceService> _persistenceMock = new();
     private readonly Mock<ILogger<FetchEmailsHandler>> _loggerMock = new();
     private readonly FetchEmailsHandler _handler;
+    private readonly DateTime _since = DateTime.UtcNow.AddHours(-1);
 
     public FetchEmailsHandlerTests()
     {
@@ -21,9 +22,9 @@ public class FetchEmailsHandlerTests
     public async Task Handle_AllEmailsPersisted_ReturnsCount()
     {
         var emails = new List<string> { "eml1", "eml2" };
-        _fetcherMock.Setup(x => x.GetNewEmailsAsync("user", "token", It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).ReturnsAsync(emails);
+        _fetcherMock.Setup(x => x.GetNewEmailsAsync("user", "token", _since, It.IsAny<CancellationToken>())).ReturnsAsync(emails);
         _persistenceMock.Setup(x => x.PersistAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("id");
-        var cmd = new FetchEmailsCommand("fam", "user", "token");
+        var cmd = new FetchEmailsCommand("fam", "user", "token", _since);
 
         var result = await _handler.Handle(cmd, CancellationToken.None);
 
@@ -41,12 +42,12 @@ public class FetchEmailsHandlerTests
     public async Task Handle_SomeEmailsFailToPersist_LogsErrorAndReturnsSuccessCount()
     {
         var emails = new List<string> { "eml1", "eml2", "eml3" };
-        _fetcherMock.Setup(x => x.GetNewEmailsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).ReturnsAsync(emails);
+        _fetcherMock.Setup(x => x.GetNewEmailsAsync(It.IsAny<string>(), It.IsAny<string>(), _since, It.IsAny<CancellationToken>())).ReturnsAsync(emails);
         _persistenceMock.SetupSequence(x => x.PersistAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("id1")
             .ThrowsAsync(new Exception("fail"))
             .ReturnsAsync("id3");
-        var cmd = new FetchEmailsCommand("fam", "user", "token");
+        var cmd = new FetchEmailsCommand("fam", "user", "token", _since);
 
         var result = await _handler.Handle(cmd, CancellationToken.None);
 
@@ -62,8 +63,8 @@ public class FetchEmailsHandlerTests
     [Fact]
     public async Task Handle_NoEmails_ReturnsZero()
     {
-        _fetcherMock.Setup(x => x.GetNewEmailsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<string>());
-        var cmd = new FetchEmailsCommand("fam", "user", "token");
+        _fetcherMock.Setup(x => x.GetNewEmailsAsync(It.IsAny<string>(), It.IsAny<string>(), _since, It.IsAny<CancellationToken>())).ReturnsAsync(new List<string>());
+        var cmd = new FetchEmailsCommand("fam", "user", "token", _since);
 
         var result = await _handler.Handle(cmd, CancellationToken.None);
 
@@ -75,8 +76,8 @@ public class FetchEmailsHandlerTests
     {
         var cts = new CancellationTokenSource();
         cts.Cancel();
-        _fetcherMock.Setup(x => x.GetNewEmailsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), cts.Token)).ThrowsAsync(new OperationCanceledException());
-        var cmd = new FetchEmailsCommand("fam", "user", "token");
+        _fetcherMock.Setup(x => x.GetNewEmailsAsync(It.IsAny<string>(), It.IsAny<string>(), _since, cts.Token)).ThrowsAsync(new OperationCanceledException());
+        var cmd = new FetchEmailsCommand("fam", "user", "token", _since);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _handler.Handle(cmd, cts.Token));
     }
@@ -84,8 +85,8 @@ public class FetchEmailsHandlerTests
     [Fact]
     public async Task Handle_FetcherThrows_Propagates()
     {
-        _fetcherMock.Setup(x => x.GetNewEmailsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("fetch fail"));
-        var cmd = new FetchEmailsCommand("fam", "user", "token");
+        _fetcherMock.Setup(x => x.GetNewEmailsAsync(It.IsAny<string>(), It.IsAny<string>(), _since, It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("fetch fail"));
+        var cmd = new FetchEmailsCommand("fam", "user", "token", _since);
 
         await Assert.ThrowsAsync<Exception>(() => _handler.Handle(cmd, CancellationToken.None));
     }
