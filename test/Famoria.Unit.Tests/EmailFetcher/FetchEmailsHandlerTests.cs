@@ -1,9 +1,11 @@
 using Famoria.Application.Features.FetchEmails;
 using Famoria.Application.Interfaces;
+
 using Microsoft.Extensions.Logging;
+
 using Moq;
 
-namespace Famoria.Unit.Tests.Features;
+namespace Famoria.Unit.Tests.EmailFetcher;
 
 public class FetchEmailsHandlerTests
 {

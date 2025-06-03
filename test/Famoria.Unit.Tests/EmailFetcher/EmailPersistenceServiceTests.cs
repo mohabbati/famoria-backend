@@ -1,14 +1,19 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+
 using Famoria.Application.Services;
 using Famoria.Domain.Entities;
+
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+
 using MimeKit;
+
 using Moq;
+
 using System.Text;
 
-namespace Famoria.Unit.Tests.Services;
+namespace Famoria.Unit.Tests.EmailFetcher;
 
 public class EmailPersistenceServiceTests
 {
@@ -65,7 +70,7 @@ public class EmailPersistenceServiceTests
         _blobContainerMock.Verify(x => x.GetBlobClient(It.Is<string>(s => s.Contains($"{familyId}/email/{itemId}/original.eml"))), Times.Once);
         _blobClientMock.Verify(x => x.UploadAsync(It.IsAny<BinaryData>(), true, It.IsAny<CancellationToken>()), Times.Once);
         _containerMock.Verify(x => x.CreateItemAsync(
-            It.Is<FamilyItem>(f => f.Id == itemId && f.FamilyId == familyId && f.Source == Famoria.Domain.Enums.FamilyItemSource.Email),
+            It.Is<FamilyItem>(f => f.Id == itemId && f.FamilyId == familyId && f.Source == Domain.Enums.FamilyItemSource.Email),
             It.Is<PartitionKey>(pk => pk.ToString() == $"[\"{familyId}\"]"),
             null,
             It.IsAny<CancellationToken>()), Times.Once);

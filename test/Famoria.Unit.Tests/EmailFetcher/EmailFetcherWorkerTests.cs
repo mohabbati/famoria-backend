@@ -2,13 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Famoria.Application.Features.FetchEmails;
+using Famoria.Email.Fetcher.Worker;
+
 using MediatR;
+
 using Microsoft.Extensions.Logging;
+
 using Moq;
+
 using Xunit;
 
-namespace Famoria.Email.Fetcher.Worker.Tests;
+namespace Famoria.Unit.Tests.EmailFetcher;
 
 public class EmailFetcherWorkerTests
 {

@@ -1,14 +1,19 @@
 using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
+
 using MailKit;
 using MailKit.Search;
 using MailKit.Security;
+
 using Microsoft.Extensions.Logging;
+
 using MimeKit;
+
 using Moq;
+
 using Polly;
 
-namespace Famoria.Unit.Tests.Services;
+namespace Famoria.Unit.Tests.EmailFetcher;
 
 public class GmailEmailFetcherTests
 {
@@ -113,7 +118,7 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_RetriesOnTransientError()
     {
-        int callCount = 0;
+        var callCount = 0;
         var retryPolicy = Policy
             .Handle<Exception>()
             .RetryAsync(2, onRetry: (ex, count, ctx) => callCount++);
