@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Famoria.Domain.Entities;
 
-public class UserIntegrationConnection : AuditableEntity
+public class UserLinkedAccount : AuditableEntity
 {
     public required string FamilyId { get; init; }        // Partition key
     public required string UserId { get; init; }          // Who connected it

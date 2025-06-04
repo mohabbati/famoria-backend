@@ -63,7 +63,7 @@ app.MapGet("/auth/google", (IMailOAuthProvider google, HttpContext ctx) =>
 app.MapGet("/auth/google/callback",
 async (string code, string state,
        IMailOAuthProvider google,
-       IUserIntegrationConnectionService store,
+       IUserLinkedAccountService linkedAccount,
        IAesCryptoService crypto,
        ILogger<Program> log,
        CancellationToken ct) =>
@@ -72,7 +72,7 @@ async (string code, string state,
     var familyId  = parts[0];
     var userId    = parts[1];
     var token = await google.ExchangeCodeAsync(code, ct);
-    var conn = new UserIntegrationConnection
+    var conn = new UserLinkedAccount
     {
         FamilyId              = familyId,
         UserId                = userId,
@@ -84,7 +84,7 @@ async (string code, string state,
         TokenExpiresAtUtc     = DateTime.UtcNow.AddSeconds(token.ExpiresInSeconds),
         IsActive              = true
     };
-    await store.UpsertAsync(conn, ct);
+    await linkedAccount.UpsertAsync(conn, ct);
     return Results.Ok("Gmail connected!");
 });
 

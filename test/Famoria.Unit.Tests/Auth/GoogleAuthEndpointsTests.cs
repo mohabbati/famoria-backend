@@ -23,10 +23,10 @@ public class GoogleAuthEndpointsTests
         var tokenResult = new TokenResult("access", "refresh", 3600, "user@gmail.com");
         var mockOAuth = new Mock<IMailOAuthProvider>();
         mockOAuth.Setup(m => m.ExchangeCodeAsync(code, It.IsAny<CancellationToken>())).ReturnsAsync(tokenResult);
-        var mockStore = new Mock<IUserIntegrationConnectionService>();
-        UserIntegrationConnection? capturedConn = null;
-        mockStore.Setup(s => s.UpsertAsync(It.IsAny<UserIntegrationConnection>(), It.IsAny<CancellationToken>()))
-            .Callback<UserIntegrationConnection, CancellationToken>((conn, ct) => capturedConn = conn)
+        var mockStore = new Mock<IUserLinkedAccountService>();
+        UserLinkedAccount? capturedConn = null;
+        mockStore.Setup(s => s.UpsertAsync(It.IsAny<UserLinkedAccount>(), It.IsAny<CancellationToken>()))
+            .Callback<UserLinkedAccount, CancellationToken>((conn, ct) => capturedConn = conn)
             .Returns(Task.CompletedTask);
         var aesKey = new byte[32] { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32 };
         var crypto = new AesCryptoService(aesKey);
@@ -37,7 +37,7 @@ public class GoogleAuthEndpointsTests
         var familyId = parts[0];
         var userId = parts[1];
         var token = await mockOAuth.Object.ExchangeCodeAsync(code, ct);
-        var conn = new UserIntegrationConnection
+        var conn = new UserLinkedAccount
         {
             FamilyId = familyId,
             UserId = userId,
@@ -71,7 +71,7 @@ public class GoogleAuthEndpointsTests
         var state = "fam001:testUser:guid";
         var mockOAuth = new Mock<IMailOAuthProvider>();
         mockOAuth.Setup(m => m.ExchangeCodeAsync(code, It.IsAny<CancellationToken>())).ReturnsAsync((TokenResult)null!);
-        var mockStore = new Mock<IUserIntegrationConnectionService>();
+        var mockStore = new Mock<IUserLinkedAccountService>();
         var aesKey = new byte[32];
         var crypto = new AesCryptoService(aesKey);
         var ct = CancellationToken.None;
@@ -82,7 +82,7 @@ public class GoogleAuthEndpointsTests
         {
             var token = await mockOAuth.Object.ExchangeCodeAsync(code, ct);
             if (token == null) throw new InvalidOperationException("TokenResult is null");
-            var conn = new UserIntegrationConnection
+            var conn = new UserLinkedAccount
             {
                 FamilyId = familyId,
                 UserId = userId,
@@ -105,7 +105,7 @@ public class GoogleAuthEndpointsTests
         var code = "abc";
         var state = "badstate"; // not enough parts
         var mockOAuth = new Mock<IMailOAuthProvider>();
-        var mockStore = new Mock<IUserIntegrationConnectionService>();
+        var mockStore = new Mock<IUserLinkedAccountService>();
         var aesKey = new byte[32];
         var crypto = new AesCryptoService(aesKey);
         var ct = CancellationToken.None;
@@ -116,7 +116,7 @@ public class GoogleAuthEndpointsTests
             var familyId = parts[0];
             var userId = parts[1];
             var token = await mockOAuth.Object.ExchangeCodeAsync(code, ct);
-            var conn = new UserIntegrationConnection
+            var conn = new UserLinkedAccount
             {
                 FamilyId = familyId,
                 UserId = userId,
@@ -141,8 +141,8 @@ public class GoogleAuthEndpointsTests
         var tokenResult = new TokenResult("access", "refresh", 3600, "user@gmail.com");
         var mockOAuth = new Mock<IMailOAuthProvider>();
         mockOAuth.Setup(m => m.ExchangeCodeAsync(code, It.IsAny<CancellationToken>())).ReturnsAsync(tokenResult);
-        var mockStore = new Mock<IUserIntegrationConnectionService>();
-        mockStore.Setup(s => s.UpsertAsync(It.IsAny<UserIntegrationConnection>(), It.IsAny<CancellationToken>()))
+        var mockStore = new Mock<IUserLinkedAccountService>();
+        mockStore.Setup(s => s.UpsertAsync(It.IsAny<UserLinkedAccount>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Store failed"));
         var aesKey = new byte[32];
         var crypto = new AesCryptoService(aesKey);
@@ -153,7 +153,7 @@ public class GoogleAuthEndpointsTests
         Func<Task> act = async () =>
         {
             var token = await mockOAuth.Object.ExchangeCodeAsync(code, ct);
-            var conn = new UserIntegrationConnection
+            var conn = new UserLinkedAccount
             {
                 FamilyId = familyId,
                 UserId = userId,
@@ -171,10 +171,10 @@ public class GoogleAuthEndpointsTests
     }
 }
 
-public class InMemoryUserIntegrationConnectionService : IUserIntegrationConnectionService
+public class InMemoryUserIntegrationConnectionService : IUserLinkedAccountService
 {
-    public List<UserIntegrationConnection> Connections { get; } = new();
-    public Task UpsertAsync(UserIntegrationConnection connection, CancellationToken cancellationToken)
+    public List<UserLinkedAccount> Connections { get; } = new();
+    public Task UpsertAsync(UserLinkedAccount connection, CancellationToken cancellationToken)
     {
         Connections.Add(connection);
         return Task.CompletedTask;
