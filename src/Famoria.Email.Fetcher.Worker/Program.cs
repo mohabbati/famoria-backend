@@ -5,12 +5,13 @@ using Famoria.Infrastructure;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.AddServiceDefaults();
-builder.AddApplication()
-       .AddInfrastructure(builder.Configuration.Get<AppSettings>()!)
-       .AddEmailFetcherServices();
+builder
+    .AddServiceDefaults()
+    .AddInfrastructure(builder.Configuration.Get<AppSettings>()!)
+    .AddEmailFetcherServices();
 
 builder.Services.AddHostedService<EmailFetcherWorker>();
 
 var host = builder.Build();
+
 host.Run();

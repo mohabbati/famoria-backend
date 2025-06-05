@@ -1,4 +1,4 @@
-namespace Famoria.Application.Integrations.Google;
+namespace Famoria.Application.Services.Integrations;
 
 public class GoogleAuthSettings
 {

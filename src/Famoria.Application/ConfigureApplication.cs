@@ -1,19 +1,28 @@
+using System.Reflection;
 using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
+using Famoria.Application.Services.Integrations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Polly.Retry;
-using System.Reflection;
 
 namespace Famoria.Application;
 
 public static class ConfigureApplication
 {
-    public static IHostApplicationBuilder AddApplication(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddApiServices(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-        
+        builder.Services.Configure<GoogleAuthSettings>(builder.Configuration.GetSection("Auth:Google"));
+
+        builder.Services.AddHttpClient<IMailOAuthProvider, GmailOAuthProvider>();
+
+        // Register a real implementation for IUserIntegrationConnectionService here
+        // builder.Services.AddSingleton<IUserIntegrationConnectionService, CosmosDbIntegrationConnectionService>();
+        // Register AesCryptoService with injected key (replace with your actual key retrieval logic)
+        var aesKey = Convert.FromBase64String(builder.Configuration["EncryptionKey"] ?? throw new InvalidOperationException("EncryptionKey not configured"));
+        builder.Services.AddSingleton<IAesCryptoService>(new AesCryptoService(aesKey));
+
         return builder;
     }
 
@@ -22,6 +31,8 @@ public static class ConfigureApplication
     /// </summary>
     public static IHostApplicationBuilder AddEmailFetcherServices(this IHostApplicationBuilder builder)
     {
+        var a = Assembly.GetExecutingAssembly();
+        builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         builder.Services.AddScoped<IEmailFetcher, GmailEmailFetcher>();
         builder.Services.AddScoped<IEmailPersistenceService, EmailPersistenceService>();
         builder.Services.AddTransient<IImapClientWrapper, ImapClientWrapper>();

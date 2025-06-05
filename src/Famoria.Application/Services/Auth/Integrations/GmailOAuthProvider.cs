@@ -1,11 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Net.Http.Headers;
 using System.Text.Json;
+using Famoria.Application.Interfaces;
 
-namespace Famoria.Application.Integrations.Google;
+namespace Famoria.Application.Services.Integrations;
 
 public class GmailOAuthProvider : IMailOAuthProvider
 {

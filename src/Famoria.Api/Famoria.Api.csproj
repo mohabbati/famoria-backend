@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>Public-facing API for frontend (families, items, tasks, quotas, etc.)</Description>
+    <UserSecretsId>bdd923d7-5023-4069-8e58-1d3b360721fb</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

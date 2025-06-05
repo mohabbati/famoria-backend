@@ -1,5 +1,7 @@
 #pragma warning disable ASPIRECOSMOSDB001
 
+using Aspire.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(x =>
@@ -18,6 +20,7 @@ var cosmosDb = cosmos.AddCosmosDatabase("cosmos-db", "famoria");
 cosmosDb.AddContainer("families", "/id");
 cosmosDb.AddContainer("family-items", "/FamilyId");
 cosmosDb.AddContainer("family-tasks", "/FamilyId");
+//cosmosDb.AddContainer("user-linked-accounts", "/");
 
 var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
     {
@@ -26,14 +29,34 @@ var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
     .AddBlobs("blobs")
     .AddBlobContainer("famoria");
 
-var mailpit = builder.AddMailPit("mail-pit").WithLifetime(ContainerLifetime.Persistent);
+// GreenMail container (IMAP/SMTP)
+var mail = builder
+    .AddContainer("dev-mail",               // logical name in Aspire
+                  "greenmail/standalone",   // image
+                  "2.1.3")                  // tag
+                                            // one test user + all protocols (SMTP/IMAP/POP3)
+    .WithEnvironment("GREENMAIL_OPTS", "-Dgreenmail.setup.test.all -Dgreenmail.users=test1:pwd1")
+    .WithEndpoint(port: 1143, targetPort: 3143, name: "imap")
+    .WithEndpoint(port: 1025, targetPort: 3025, name: "smtp")
+    .WithLifetime(ContainerLifetime.Persistent);
+
+// Roundcube web-mail
+builder.AddContainer("webmail", "roundcube/roundcubemail", "1.6.10-apache")
+       // IMAP host & port
+       .WithEnvironment("ROUNDCUBEMAIL_DEFAULT_HOST", mail.GetEndpoint("imap"))
+       .WithEnvironment("ROUNDCUBEMAIL_DEFAULT_PORT", "1143")
+       // SMTP host & port
+       .WithEnvironment("ROUNDCUBEMAIL_SMTP_SERVER", mail.GetEndpoint("smtp"))
+       .WithEnvironment("ROUNDCUBEMAIL_SMTP_PORT", "1025")
+       // expose the web UI
+       .WithEndpoint(8088, 80, "ui");   // http://localhost:8088
 
 builder.AddProject<Projects.Famoria_Api>("famoria-api")
     .WithReference(cosmos)
     .WaitFor(cosmosDb);
 builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher-worker")
-    .WithReference(mailpit)
-    .WaitFor(mailpit)
+    //.WithReference(mailu)
+    //.WaitFor(mailu)
     .WithReference(cosmos)
     .WaitFor(cosmosDb)
     .WithReference(blobContainer)

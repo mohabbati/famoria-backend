@@ -9,7 +9,7 @@ public class AppSettings
 
 public class CosmosDbSettings
 {
-    public string ConnectionString { get; set; } = default!;
+    //public string ConnectionString { get; set; } = default!;
     public string DatabaseId { get; set; } = default!;
 }
 

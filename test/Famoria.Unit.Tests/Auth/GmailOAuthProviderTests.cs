@@ -1,16 +1,10 @@
-using System;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using Famoria.Application.Integrations.Google;
+using Famoria.Application.Services.Integrations;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using RichardSzalay.MockHttp;
-using Xunit;
 
 namespace Famoria.Unit.Tests.Auth;
 

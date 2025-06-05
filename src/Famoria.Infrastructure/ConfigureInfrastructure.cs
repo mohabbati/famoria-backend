@@ -10,7 +10,7 @@ public static class ConfigureInfrastructure
 {
     public static IHostApplicationBuilder AddInfrastructure(this IHostApplicationBuilder builder, AppSettings appSettings)
     {
-        builder.Services.AddSingleton(appSettings.CosmosDbSettings);
+        builder.Services.AddSingleton(new CosmosDbSettings() /*appSettings.CosmosDbSettings*/);
 
         builder.AddCosmosDb(appSettings.CosmosDbSettings);
         builder.AddBlobContainer(appSettings.BlobContainerSettings);
@@ -29,7 +29,7 @@ public static class ConfigureInfrastructure
             cosmosSettings =>
             {
                 cosmosSettings.DisableTracing = false;
-                cosmosSettings.ConnectionString = settings.ConnectionString;
+                //cosmosSettings.ConnectionString = settings.ConnectionString;
             },
             clientOptions =>
             {
@@ -64,7 +64,7 @@ public static class ConfigureInfrastructure
             blobsSettings =>
             {
                 blobsSettings.DisableTracing = false;
-                blobsSettings.ConnectionString = settings.ConnectionString;
+                //blobsSettings.ConnectionString = settings.ConnectionString;
             });
 
         return builder;

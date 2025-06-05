@@ -1,12 +1,7 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Famoria.Application.Integrations.Google;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
 using FluentAssertions;
 using Moq;
-using Xunit;
 using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
 
