@@ -23,6 +23,8 @@ public static class ConfigureApplication
         var aesKey = Convert.FromBase64String(builder.Configuration["Auth:EncryptionKey"] ?? throw new InvalidOperationException("EncryptionKey not configured"));
         builder.Services.AddSingleton<IAesCryptoService>(new AesCryptoService(aesKey));
 
+        builder.Services.AddSingleton<IUserLinkedAccountService, UserLinkedAccountService>();
+
         return builder;
     }
 
@@ -33,8 +35,8 @@ public static class ConfigureApplication
     {
         var a = Assembly.GetExecutingAssembly();
         builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-        builder.Services.AddScoped<IEmailFetcher, GmailEmailFetcher>();
-        builder.Services.AddScoped<IEmailPersistenceService, EmailPersistenceService>();
+        builder.Services.AddTransient<IEmailFetcher, GmailEmailFetcher>();
+        builder.Services.AddTransient<IEmailPersistenceService, EmailPersistenceService>();
         builder.Services.AddTransient<IImapClientWrapper, ImapClientWrapper>();
 
         builder.Services.AddSingleton<IAsyncPolicy>(

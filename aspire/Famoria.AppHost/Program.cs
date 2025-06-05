@@ -49,7 +49,7 @@ builder.AddContainer("webmail", "roundcube/roundcubemail", "1.6.10-apache")
        .WithEnvironment("ROUNDCUBEMAIL_SMTP_SERVER", mail.GetEndpoint("smtp"))
        .WithEnvironment("ROUNDCUBEMAIL_SMTP_PORT", "1025")
        // expose the web UI
-       .WithEndpoint(8088, 80, "ui");   // http://localhost:8088
+       .WithEndpoint(8088, 80, "http");   // http://localhost:8088
 
 builder.AddProject<Projects.Famoria_Api>("famoria-api")
     .WithReference(cosmos)

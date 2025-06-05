@@ -1,23 +1,23 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http;
+using System.Text.Json;
+
+using Famoria.Application.Interfaces;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Text.Json;
-using Famoria.Application.Interfaces;
 
 namespace Famoria.Application.Services.Integrations;
 
 public class GmailOAuthProvider : IMailOAuthProvider
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HttpClient _httpClient;
     private readonly IOptionsMonitor<GoogleAuthSettings> _settings;
     private readonly ILogger<GmailOAuthProvider> _logger;
 
-    public GmailOAuthProvider(
-        IHttpClientFactory httpClientFactory,
-        IOptionsMonitor<GoogleAuthSettings> settings,
-        ILogger<GmailOAuthProvider> logger)
+    public GmailOAuthProvider(HttpClient httpClient, IOptionsMonitor<GoogleAuthSettings> settings, ILogger<GmailOAuthProvider> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _httpClient = httpClient;
         _settings = settings;
         _logger = logger;
     }
@@ -33,7 +33,6 @@ public class GmailOAuthProvider : IMailOAuthProvider
     public async Task<TokenResult> ExchangeCodeAsync(string code, CancellationToken ct)
     {
         var settings = _settings.CurrentValue;
-        var client = _httpClientFactory.CreateClient();
         var content = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("code", code),
@@ -42,7 +41,7 @@ public class GmailOAuthProvider : IMailOAuthProvider
             new KeyValuePair<string, string>("redirect_uri", settings.RedirectUri),
             new KeyValuePair<string, string>("grant_type", "authorization_code")
         });
-        var response = await client.PostAsync("https://oauth2.googleapis.com/token", content, ct);
+        var response = await _httpClient.PostAsync("https://oauth2.googleapis.com/token", content, ct);
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(ct);
         using var doc = JsonDocument.Parse(json);
