@@ -1,13 +1,18 @@
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Famoria.Domain.Entities;
-using FluentAssertions;
-using Moq;
-using Xunit;
-using Microsoft.Azure.Cosmos;
+
 using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
-using System.Text;
+using Famoria.Domain.Entities;
+
+using FluentAssertions;
+
+using Microsoft.Azure.Cosmos;
+
+using Moq;
+
+using Xunit;
 
 namespace Famoria.Unit.Tests.Auth;
 

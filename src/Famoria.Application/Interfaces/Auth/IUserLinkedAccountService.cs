@@ -1,6 +1,7 @@
-using Famoria.Domain.Entities;
 using System.Threading;
 using System.Threading.Tasks;
+
+using Famoria.Domain.Entities;
 
 namespace Famoria.Application.Interfaces;
 

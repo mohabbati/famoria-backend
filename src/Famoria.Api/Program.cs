@@ -50,10 +50,10 @@ app.MapControllers();
 app.MapGet("/auth/google", (IMailOAuthProvider google, HttpContext ctx) =>
 {
     var familyId = ctx.Request.Query["familyId"];
-    var userId   = ctx.User.FindFirst("sub")?.Value ?? "anonymous";
-    var email    = ctx.User.FindFirst("email")!.Value;
+    var userId = ctx.User.FindFirst("sub")?.Value ?? "anonymous";
+    var email = ctx.User.FindFirst("email")!.Value;
     var state = $"{familyId}:{userId}:{Guid.NewGuid()}";
-    var url   = google.BuildConsentUrl(state, email);
+    var url = google.BuildConsentUrl(state, email);
     return Results.Redirect(url);
 });
 
@@ -65,21 +65,21 @@ async (string code, string state,
        ILogger<Program> log,
        CancellationToken ct) =>
 {
-    var parts     = state.Split(':');
-    var familyId  = parts[0];
-    var userId    = parts[1];
+    var parts = state.Split(':');
+    var familyId = parts[0];
+    var userId = parts[1];
     var token = await google.ExchangeCodeAsync(code, ct);
     var conn = new UserLinkedAccount
     {
-        FamilyId              = familyId,
-        UserId                = userId,
-        Provider              = "Google",
-        Source                = FamilyItemSource.Email,
-        UserEmail             = token.UserEmail,
-        AccessToken           = crypto.Encrypt(token.AccessToken),
-        RefreshToken          = token.RefreshToken is null ? null : crypto.Encrypt(token.RefreshToken),
-        TokenExpiresAtUtc     = DateTime.UtcNow.AddSeconds(token.ExpiresInSeconds),
-        IsActive              = true
+        FamilyId = familyId,
+        UserId = userId,
+        Provider = "Google",
+        Source = FamilyItemSource.Email,
+        UserEmail = token.UserEmail,
+        AccessToken = crypto.Encrypt(token.AccessToken),
+        RefreshToken = token.RefreshToken is null ? null : crypto.Encrypt(token.RefreshToken),
+        TokenExpiresAtUtc = DateTime.UtcNow.AddSeconds(token.ExpiresInSeconds),
+        IsActive = true
     };
     await linkedAccount.UpsertAsync(conn, ct);
     return Results.Ok("Gmail connected!");

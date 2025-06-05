@@ -1,9 +1,11 @@
+using Famoria.Application.Interfaces;
+
 using MailKit;
 using MailKit.Net.Imap;
-using MailKit.Security;
-using MimeKit;
 using MailKit.Search;
-using Famoria.Application.Interfaces;
+using MailKit.Security;
+
+using MimeKit;
 
 namespace Famoria.Application.Services;
 

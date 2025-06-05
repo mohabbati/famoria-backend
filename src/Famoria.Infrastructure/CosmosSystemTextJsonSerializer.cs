@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using Microsoft.Azure.Cosmos;
 
 namespace Famoria.Infrastructure;

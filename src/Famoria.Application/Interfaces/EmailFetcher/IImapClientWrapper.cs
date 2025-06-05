@@ -1,7 +1,8 @@
 using MailKit;
-using MailKit.Security;
-using MimeKit;
 using MailKit.Search;
+using MailKit.Security;
+
+using MimeKit;
 
 namespace Famoria.Application.Interfaces;
 

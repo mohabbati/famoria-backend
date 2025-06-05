@@ -11,4 +11,4 @@ public interface IEmailFetcher
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of raw .eml strings.</returns>
     Task<List<string>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken);
-} 
+}

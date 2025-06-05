@@ -1,8 +1,10 @@
+using System.Text;
+
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
-using Famoria.Application.Services;
 using Famoria.Application.Models;
+using Famoria.Application.Services;
 using Famoria.Domain.Entities;
 
 using Microsoft.Azure.Cosmos;
@@ -11,8 +13,6 @@ using Microsoft.Extensions.Logging;
 using MimeKit;
 
 using Moq;
-
-using System.Text;
 
 namespace Famoria.Unit.Tests.EmailFetcher;
 

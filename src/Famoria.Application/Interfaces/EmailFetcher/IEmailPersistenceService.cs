@@ -10,4 +10,4 @@ public interface IEmailPersistenceService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The generated ItemId.</returns>
     Task<string> PersistAsync(string emlContent, string familyId, CancellationToken cancellationToken);
-} 
+}

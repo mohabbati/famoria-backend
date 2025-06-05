@@ -1,5 +1,7 @@
 using Famoria.Application.Interfaces;
+
 using MediatR;
+
 using Microsoft.Extensions.Logging;
 
 namespace Famoria.Application.Features.FetchEmails;
