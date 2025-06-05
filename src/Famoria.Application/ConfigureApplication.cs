@@ -20,7 +20,7 @@ public static class ConfigureApplication
         // Register a real implementation for IUserIntegrationConnectionService here
         // builder.Services.AddSingleton<IUserIntegrationConnectionService, CosmosDbIntegrationConnectionService>();
         // Register AesCryptoService with injected key (replace with your actual key retrieval logic)
-        var aesKey = Convert.FromBase64String(builder.Configuration["EncryptionKey"] ?? throw new InvalidOperationException("EncryptionKey not configured"));
+        var aesKey = Convert.FromBase64String(builder.Configuration["Auth:EncryptionKey"] ?? throw new InvalidOperationException("EncryptionKey not configured"));
         builder.Services.AddSingleton<IAesCryptoService>(new AesCryptoService(aesKey));
 
         return builder;
@@ -37,7 +37,7 @@ public static class ConfigureApplication
         builder.Services.AddScoped<IEmailPersistenceService, EmailPersistenceService>();
         builder.Services.AddTransient<IImapClientWrapper, ImapClientWrapper>();
 
-        builder.Services.AddSingleton<AsyncRetryPolicy>(
+        builder.Services.AddSingleton<IAsyncPolicy>(
                     Policy
                         .Handle<MailKit.Net.Imap.ImapProtocolException>()
                         .Or<MailKit.CommandException>()

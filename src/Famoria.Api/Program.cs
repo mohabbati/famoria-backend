@@ -1,9 +1,11 @@
 using Famoria.Application;
 using Famoria.Application.Interfaces;
 using Famoria.Application.Models;
-using Famoria.Infrastructure;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
+using Famoria.Infrastructure;
+
+using Microsoft.AspNetCore.Mvc;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -50,7 +52,7 @@ app.MapGet("/auth/google", (IMailOAuthProvider google, HttpContext ctx) =>
 app.MapGet("/auth/google/callback",
 async (string code, string state,
        IMailOAuthProvider google,
-       IUserLinkedAccountService linkedAccount,
+       [FromServices] IUserLinkedAccountService linkedAccount,
        IAesCryptoService crypto,
        ILogger<Program> log,
        CancellationToken ct) =>
