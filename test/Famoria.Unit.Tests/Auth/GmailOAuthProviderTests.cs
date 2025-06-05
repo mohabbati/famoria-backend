@@ -1,9 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http;
+
 using Famoria.Application.Services.Integrations;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
 using Moq;
+
 using RichardSzalay.MockHttp;
 
 namespace Famoria.Unit.Tests.Auth;
@@ -23,7 +29,7 @@ public class GmailOAuthProviderTests
     {
         var options = Mock.Of<IOptionsMonitor<GoogleAuthSettings>>(o => o.CurrentValue == TestSettings);
         var provider = new GmailOAuthProvider(
-            new Mock<IHttpClientFactory>().Object,
+            new HttpClient(),
             options,
             Mock.Of<ILogger<GmailOAuthProvider>>());
         var url = provider.BuildConsentUrl("state123", "user@gmail.com");
@@ -41,10 +47,9 @@ public class GmailOAuthProviderTests
         var mockHttp = new MockHttpMessageHandler();
         mockHttp.When("https://oauth2.googleapis.com/token")
             .Respond("application/json", $"{{\"access_token\":\"ya29.test\",\"refresh_token\":\"refresh\",\"expires_in\":3600,\"id_token\":\"{jwt}\"}}");
-        var clientFactory = new Mock<IHttpClientFactory>();
-        clientFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(mockHttp.ToHttpClient());
+        var httpClient = mockHttp.ToHttpClient();
         var options = Mock.Of<IOptionsMonitor<GoogleAuthSettings>>(o => o.CurrentValue == TestSettings);
-        var provider = new GmailOAuthProvider(clientFactory.Object, options, Mock.Of<ILogger<GmailOAuthProvider>>());
+        var provider = new GmailOAuthProvider(httpClient, options, Mock.Of<ILogger<GmailOAuthProvider>>());
         var result = await provider.ExchangeCodeAsync("abc", CancellationToken.None);
         result.AccessToken.Should().Be("ya29.test");
         result.RefreshToken.Should().Be("refresh");

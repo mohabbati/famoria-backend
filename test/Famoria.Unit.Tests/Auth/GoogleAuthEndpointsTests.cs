@@ -1,9 +1,11 @@
-using Famoria.Domain.Entities;
-using Famoria.Domain.Enums;
-using FluentAssertions;
-using Moq;
 using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
+using Famoria.Domain.Entities;
+using Famoria.Domain.Enums;
+
+using FluentAssertions;
+
+using Moq;
 
 namespace Famoria.Unit.Tests.Auth;
 
@@ -23,7 +25,7 @@ public class GoogleAuthEndpointsTests
         mockStore.Setup(s => s.UpsertAsync(It.IsAny<UserLinkedAccount>(), It.IsAny<CancellationToken>()))
             .Callback<UserLinkedAccount, CancellationToken>((conn, ct) => capturedConn = conn)
             .Returns(Task.CompletedTask);
-        var aesKey = new byte[32] { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32 };
+        var aesKey = new byte[32] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
         var crypto = new AesCryptoService(aesKey);
         var ct = CancellationToken.None;
 

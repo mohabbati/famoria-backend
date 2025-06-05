@@ -1,4 +1,5 @@
 using Famoria.Application.Features.FetchEmails;
+
 using MediatR;
 
 namespace Famoria.Email.Fetcher.Worker;

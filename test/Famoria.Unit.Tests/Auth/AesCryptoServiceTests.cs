@@ -1,6 +1,9 @@
 using System;
+
 using Famoria.Application.Services;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace Famoria.Unit.Tests.Auth;

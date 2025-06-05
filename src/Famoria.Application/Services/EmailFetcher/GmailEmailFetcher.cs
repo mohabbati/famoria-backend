@@ -1,8 +1,12 @@
 using System.Text;
-using MailKit.Security;
-using MailKit.Search;
+
 using Famoria.Application.Interfaces;
+
+using MailKit.Search;
+using MailKit.Security;
+
 using Microsoft.Extensions.Logging;
+
 using Polly;
 using Polly.Retry;
 

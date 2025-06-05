@@ -1,6 +1,7 @@
-using Famoria.Application.Interfaces;
 using System;
 using System.Security.Cryptography;
+
+using Famoria.Application.Interfaces;
 
 namespace Famoria.Application.Services;
 

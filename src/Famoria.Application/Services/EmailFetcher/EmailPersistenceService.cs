@@ -1,13 +1,17 @@
+using System.Text;
+
 using Azure.Storage.Blobs;
+
 using Famoria.Application.Interfaces;
+using Famoria.Application.Models;
 using Famoria.Domain.Common;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
+
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+
 using MimeKit;
-using System.Text;
-using Famoria.Application.Models;
 
 namespace Famoria.Application.Services;
 
@@ -96,4 +100,4 @@ public class EmailPersistenceService : IEmailPersistenceService
             throw;
         }
     }
-} 
+}

@@ -1,9 +1,12 @@
 using System.Reflection;
+
 using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
 using Famoria.Application.Services.Integrations;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+
 using Polly;
 using Polly.Retry;
 
