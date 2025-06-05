@@ -7,6 +7,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 using System.Text;
+using Famoria.Application.Models;
 
 namespace Famoria.Application.Services;
 
@@ -14,15 +15,18 @@ public class EmailPersistenceService : IEmailPersistenceService
 {
     private readonly BlobContainerClient _blobContainerClient;
     private readonly CosmosClient _cosmosClient;
+    private readonly CosmosDbSettings _settings;
     private readonly ILogger<EmailPersistenceService> _logger;
 
     public EmailPersistenceService(
         BlobContainerClient blobContainerClient,
         CosmosClient cosmosClient,
+        CosmosDbSettings settings,
         ILogger<EmailPersistenceService> logger)
     {
         _blobContainerClient = blobContainerClient;
         _cosmosClient = cosmosClient;
+        _settings = settings;
         _logger = logger;
     }
 
@@ -80,7 +84,7 @@ public class EmailPersistenceService : IEmailPersistenceService
             };
 
             // Persist to Cosmos DB
-            var db = _cosmosClient.GetDatabase("FamoriaDb");
+            var db = _cosmosClient.GetDatabase(_settings.DatabaseId);
             var container = db.GetContainer("family-items");
             await container.CreateItemAsync(familyItem, new PartitionKey(familyId), cancellationToken: cancellationToken).ConfigureAwait(false);
 
