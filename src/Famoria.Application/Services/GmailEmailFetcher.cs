@@ -27,9 +27,11 @@ public class GmailEmailFetcher : IEmailFetcher
         {
             var emlList = new List<string>();
             var correlationId = Guid.NewGuid().ToString();
+            var connected = false;
             try
             {
                 await _imapClient.ConnectAsync("imap.gmail.com", 993, SecureSocketOptions.SslOnConnect, ct).ConfigureAwait(false);
+                connected = true;
                 var sasl = new SaslMechanismOAuth2(userEmail, accessToken);
                 await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
                 var inbox = await _imapClient.GetInboxAsync(ct).ConfigureAwait(false);
@@ -54,8 +56,6 @@ public class GmailEmailFetcher : IEmailFetcher
                             uid, ex.Message, correlationId);
                     }
                 }
-
-                await _imapClient.DisconnectAsync(true, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -63,7 +63,24 @@ public class GmailEmailFetcher : IEmailFetcher
                     userEmail, ex.Message, correlationId);
                 throw;
             }
+            finally
+            {
+                if (connected)
+                {
+                    try
+                    {
+                        await _imapClient.DisconnectAsync(true, ct).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to disconnect IMAP client (CorrelationId: {CorrelationId})", correlationId);
+                    }
+                }
+
+                _imapClient.Dispose();
+            }
+
             return emlList;
         }, new Context(), cancellationToken).ConfigureAwait(false);
     }
-} 
+}
