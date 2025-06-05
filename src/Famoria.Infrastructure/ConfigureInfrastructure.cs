@@ -10,6 +10,8 @@ public static class ConfigureInfrastructure
 {
     public static IHostApplicationBuilder AddInfrastructure(this IHostApplicationBuilder builder, AppSettings appSettings)
     {
+        builder.Services.AddSingleton(appSettings.CosmosDbSettings);
+
         builder.AddCosmosDb(appSettings.CosmosDbSettings);
         builder.AddBlobContainer(appSettings.BlobContainerSettings);
 
