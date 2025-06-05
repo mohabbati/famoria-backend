@@ -2,6 +2,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
 using Famoria.Application.Services;
+using Famoria.Application.Models;
 using Famoria.Domain.Entities;
 
 using Microsoft.Azure.Cosmos;
@@ -23,9 +24,10 @@ public class EmailPersistenceServiceTests
     private readonly Mock<BlobClient> _blobClientMock = new();
     private readonly Mock<Database> _dbMock = new();
     private readonly Mock<Container> _containerMock = new();
+    private readonly CosmosDbSettings _settings = new() { DatabaseId = "FamoriaDb" };
 
     private EmailPersistenceService CreateService() =>
-        new EmailPersistenceService(_blobContainerMock.Object, _cosmosClientMock.Object, _loggerMock.Object);
+        new EmailPersistenceService(_blobContainerMock.Object, _cosmosClientMock.Object, _settings, _loggerMock.Object);
 
     private string CreateEmlWithAttachment(out string attachmentName)
     {

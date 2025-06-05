@@ -28,6 +28,7 @@ public class EmailFetcherWorkerTests
         var cts = new CancellationTokenSource();
         cts.CancelAfter(300); // Let it run at least one loop
         await worker.StartAsync(cts.Token);
+        await Task.Delay(150);
         mediatorMock.Verify(m => m.Send(It.IsAny<FetchEmailsCommand>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
         loggerMock.Verify(l => l.Log(
             LogLevel.Information,
@@ -47,6 +48,7 @@ public class EmailFetcherWorkerTests
         var cts = new CancellationTokenSource();
         cts.CancelAfter(300);
         await worker.StartAsync(cts.Token);
+        await Task.Delay(150);
         loggerMock.Verify(l => l.Log(
             LogLevel.Error,
             It.IsAny<EventId>(),
@@ -64,6 +66,7 @@ public class EmailFetcherWorkerTests
         var cts = new CancellationTokenSource();
         cts.Cancel();
         await worker.StartAsync(cts.Token);
+        await Task.Delay(150);
         mediatorMock.Verify(m => m.Send(It.IsAny<FetchEmailsCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
