@@ -17,7 +17,10 @@ public static class ConfigureApplication
         return builder;
     }
 
-    public static void AddEmailFetcherWorker(IHostApplicationBuilder builder)
+    /// <summary>
+    /// Registers services required by the email fetcher worker.
+    /// </summary>
+    public static void AddEmailFetcherServices(IHostApplicationBuilder builder)
     {
         builder.Services.AddScoped<IEmailFetcher, GmailEmailFetcher>();
         builder.Services.AddTransient<IImapClientWrapper, ImapClientWrapper>();
