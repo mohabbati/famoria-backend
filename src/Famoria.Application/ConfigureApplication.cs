@@ -20,9 +20,10 @@ public static class ConfigureApplication
     /// <summary>
     /// Registers services required by the email fetcher worker.
     /// </summary>
-    public static void AddEmailFetcherServices(IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddEmailFetcherServices(this IHostApplicationBuilder builder)
     {
         builder.Services.AddScoped<IEmailFetcher, GmailEmailFetcher>();
+        builder.Services.AddScoped<IEmailPersistenceService, EmailPersistenceService>();
         builder.Services.AddTransient<IImapClientWrapper, ImapClientWrapper>();
 
         builder.Services.AddSingleton<AsyncRetryPolicy>(
@@ -41,5 +42,7 @@ public static class ConfigureApplication
                             }
                         )
                 );
+
+        return builder;
     }
 }
