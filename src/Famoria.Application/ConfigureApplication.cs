@@ -13,11 +13,10 @@ public static class ConfigureApplication
 {
     public static IHostApplicationBuilder AddApiServices(this IHostApplicationBuilder builder)
     {
-        builder.Services.Configure<GoogleAuthSettings>(builder.Configuration.GetSection("Auth:Google"));
+        builder.Services.Configure<GoogleAuthSettings>(builder.Configuration.GetSection("Google"));
         builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Auth:Jwt"));
 
-        builder.Services.AddHttpClient<IMailOAuthProvider, GmailOAuthProvider>();
-        builder.Services.AddHttpClient<GoogleOAuthHelper>();
+        // OAuth flows handled via AspNet.Security.OAuth.Google
         
         // Register the Google JWT validator
         builder.Services.AddSingleton<IGoogleJwtValidator, GoogleJwtValidator>();
@@ -30,6 +29,8 @@ public static class ConfigureApplication
 
         builder.Services.AddSingleton<IUserLinkedAccountService, UserLinkedAccountService>();
         builder.Services.AddSingleton<JwtService>();
+        builder.Services.AddTransient<GoogleSignInService>();
+        builder.Services.AddTransient<GmailLinkService>();
 
         return builder;
     }
