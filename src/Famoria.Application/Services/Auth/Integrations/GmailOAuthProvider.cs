@@ -53,6 +53,6 @@ public class GmailOAuthProvider : IMailOAuthProvider
         var handler = new JwtSecurityTokenHandler();
         var jwt = handler.ReadJwtToken(idToken);
         var email = jwt.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "";
-        return new TokenResult(accessToken, refreshToken, expiresIn, email);
+        return new TokenResult(accessToken, refreshToken, expiresIn, email, idToken);
     }
 }

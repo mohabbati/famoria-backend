@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Azure.Cosmos;
 using Famoria.Domain.Common;
+using Famoria.Application.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -86,10 +87,10 @@ async (string code,
     var db = cosmos.GetDatabase(settings.DatabaseId);
     var users = db.GetContainer("users");
     var families = db.GetContainer("families");
-    User? user = null;
+    FamoriaUser? user = null;
     try
     {
-        var resp = await users.ReadItemAsync<User>(payload.Subject, new PartitionKey(payload.Subject));
+        var resp = await users.ReadItemAsync<FamoriaUser>(payload.Subject, new PartitionKey(payload.Subject));
         user = resp.Resource;
     }
     catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -110,7 +111,7 @@ async (string code,
                 {
                     UserId = payload.Subject,
                     Name = payload.Name ?? payload.Email!,
-                    Role = FamilyMemberRole.Admin
+                    Role = FamilyMemberRole.Parent
                 }
             ],
             CreatedAt = DateTime.UtcNow,
@@ -118,7 +119,7 @@ async (string code,
         };
         await families.CreateItemAsync(family, new PartitionKey(familyId), cancellationToken: ct);
 
-        user = new User
+        user = new FamoriaUser
         {
             Id = payload.Subject,
             Email = payload.Email!,

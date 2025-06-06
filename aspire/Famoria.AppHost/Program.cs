@@ -1,7 +1,5 @@
 #pragma warning disable ASPIRECOSMOSDB001
 
-using Aspire.Hosting;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(x =>
@@ -21,7 +19,6 @@ cosmosDb.AddContainer("families", "/id");
 cosmosDb.AddContainer("family-items", "/FamilyId");
 cosmosDb.AddContainer("family-tasks", "/FamilyId");
 cosmosDb.AddContainer("users", "/id");
-//cosmosDb.AddContainer("user-linked-accounts", "/");
 
 var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
     {

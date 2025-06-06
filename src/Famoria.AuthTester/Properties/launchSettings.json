@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Famoria.AuthTester": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:19759;http://localhost:19760"
+    }
+  }
+}

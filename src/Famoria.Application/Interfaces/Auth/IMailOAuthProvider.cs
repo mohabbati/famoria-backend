@@ -10,4 +10,5 @@ public record TokenResult(
     string AccessToken,
     string? RefreshToken,
     int ExpiresInSeconds,
-    string UserEmail);
+    string UserEmail,
+    string IdToken);

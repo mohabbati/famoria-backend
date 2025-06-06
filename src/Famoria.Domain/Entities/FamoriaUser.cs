@@ -1,6 +1,6 @@
 namespace Famoria.Domain.Entities;
 
-public class User : AuditableEntity
+public class FamoriaUser : AuditableEntity
 {
     public required string Email { get; set; }
     public required string Provider { get; set; }

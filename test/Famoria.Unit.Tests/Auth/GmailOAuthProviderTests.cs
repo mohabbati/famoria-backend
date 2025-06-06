@@ -55,6 +55,7 @@ public class GmailOAuthProviderTests
         result.RefreshToken.Should().Be("refresh");
         result.ExpiresInSeconds.Should().Be(3600);
         result.UserEmail.Should().Be("user@gmail.com");
+        result.IdToken.Should().Be(jwt);
     }
 }
 

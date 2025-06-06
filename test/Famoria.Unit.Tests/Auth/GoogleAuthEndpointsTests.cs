@@ -17,7 +17,7 @@ public class GoogleAuthEndpointsTests
         // Arrange
         var code = "abc";
         var state = "fam001:testUser:guid";
-        var tokenResult = new TokenResult("access", "refresh", 3600, "user@gmail.com");
+        var tokenResult = new TokenResult("access", "refresh", 3600, "user@gmail.com", "id_token_value");
         var mockOAuth = new Mock<IMailOAuthProvider>();
         mockOAuth.Setup(m => m.ExchangeCodeAsync(code, It.IsAny<CancellationToken>())).ReturnsAsync(tokenResult);
         var mockStore = new Mock<IUserLinkedAccountService>();
@@ -135,7 +135,7 @@ public class GoogleAuthEndpointsTests
     {
         var code = "abc";
         var state = "fam001:testUser:guid";
-        var tokenResult = new TokenResult("access", "refresh", 3600, "user@gmail.com");
+        var tokenResult = new TokenResult("access", "refresh", 3600, "user@gmail.com", "id_token_value");
         var mockOAuth = new Mock<IMailOAuthProvider>();
         mockOAuth.Setup(m => m.ExchangeCodeAsync(code, It.IsAny<CancellationToken>())).ReturnsAsync(tokenResult);
         var mockStore = new Mock<IUserLinkedAccountService>();

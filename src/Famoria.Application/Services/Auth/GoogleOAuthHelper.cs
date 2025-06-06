@@ -1,6 +1,8 @@
+using Famoria.Application.Interfaces;
 using Famoria.Application.Services.Integrations;
 using Google.Apis.Auth;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace Famoria.Application.Services;
 
@@ -8,11 +10,16 @@ public class GoogleOAuthHelper
 {
     private readonly IOptionsMonitor<GoogleAuthSettings> _settings;
     private readonly HttpClient _httpClient;
+    private readonly IMailOAuthProvider _mailOAuthProvider;
 
-    public GoogleOAuthHelper(HttpClient httpClient, IOptionsMonitor<GoogleAuthSettings> settings)
+    public GoogleOAuthHelper(
+        HttpClient httpClient, 
+        IOptionsMonitor<GoogleAuthSettings> settings,
+        IMailOAuthProvider mailOAuthProvider)
     {
         _httpClient = httpClient;
         _settings = settings;
+        _mailOAuthProvider = mailOAuthProvider;
     }
 
     public string BuildAuthUrl(string state)
@@ -24,10 +31,11 @@ public class GoogleOAuthHelper
 
     public async Task<GoogleJsonWebSignature.Payload> ExchangeCodeAsync(string code, CancellationToken ct)
     {
-        var cfg = _settings.CurrentValue;
-        var token = await GoogleAuth.ExchangeCodeForTokensAsync(cfg.ClientId, cfg.ClientSecret, code, cfg.RedirectUri, ct, _httpClient);
-        // Validate id_token and return payload
-        var payload = await GoogleJsonWebSignature.ValidateAsync(token.IdToken);
+        // Use the IMailOAuthProvider implementation to exchange the code
+        var tokenResult = await _mailOAuthProvider.ExchangeCodeAsync(code, ct);
+        
+        // We need to validate the ID token from the Google JWT
+        var payload = await GoogleJsonWebSignature.ValidateAsync(tokenResult.IdToken);
         return payload;
     }
 }
