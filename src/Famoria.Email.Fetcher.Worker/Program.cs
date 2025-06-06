@@ -1,5 +1,4 @@
 using Famoria.Application;
-using Famoria.Application.Models;
 using Famoria.Email.Fetcher.Worker;
 using Famoria.Infrastructure;
 
@@ -7,7 +6,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder
     .AddServiceDefaults()
-    .AddInfrastructure(builder.Configuration.Get<AppSettings>()!)
+    .AddInfrastructure()
     .AddEmailFetcherServices();
 
 builder.Services.AddHostedService<EmailFetcherWorker>();

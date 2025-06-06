@@ -27,37 +27,36 @@ var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
     .AddBlobs("blobs")
     .AddBlobContainer("famoria");
 
-// GreenMail container (IMAP/SMTP)
-var mail = builder
-    .AddContainer("dev-mail",               // logical name in Aspire
-                  "greenmail/standalone",   // image
-                  "2.1.3")                  // tag
-                                            // one test user + all protocols (SMTP/IMAP/POP3)
-    .WithEnvironment("GREENMAIL_OPTS", "-Dgreenmail.setup.test.all -Dgreenmail.users=test1:pwd1")
-    .WithEndpoint(port: 1143, targetPort: 3143, name: "imap")
-    .WithEndpoint(port: 1025, targetPort: 3025, name: "smtp")
-    .WithLifetime(ContainerLifetime.Persistent);
+#region Dev Mail
+//// GreenMail container (IMAP/SMTP)
+//var mail = builder
+//    .AddContainer("dev-mail",               // logical name in Aspire
+//                  "greenmail/standalone",   // image
+//                  "2.1.3")                  // tag
+//                                            // one test user + all protocols (SMTP/IMAP/POP3)
+//    .WithEnvironment("GREENMAIL_OPTS", "-Dgreenmail.setup.test.all -Dgreenmail.users=test1:pwd1")
+//    .WithEndpoint(port: 1143, targetPort: 3143, name: "imap")
+//    .WithEndpoint(port: 1025, targetPort: 3025, name: "smtp")
+//    .WithLifetime(ContainerLifetime.Persistent);
 
-// Roundcube web-mail
-builder.AddContainer("webmail", "roundcube/roundcubemail", "1.6.10-apache")
-       // IMAP host & port
-       .WithEnvironment("ROUNDCUBEMAIL_DEFAULT_HOST", mail.GetEndpoint("imap"))
-       .WithEnvironment("ROUNDCUBEMAIL_DEFAULT_PORT", "1143")
-       // SMTP host & port
-       .WithEnvironment("ROUNDCUBEMAIL_SMTP_SERVER", mail.GetEndpoint("smtp"))
-       .WithEnvironment("ROUNDCUBEMAIL_SMTP_PORT", "1025")
-       // expose the web UI
-       .WithEndpoint(8088, 80, "http");   // http://localhost:8088
+//// Roundcube web-mail
+//builder.AddContainer("webmail", "roundcube/roundcubemail", "1.6.10-apache")
+//       // IMAP host & port
+//       .WithEnvironment("ROUNDCUBEMAIL_DEFAULT_HOST", mail.GetEndpoint("imap"))
+//       .WithEnvironment("ROUNDCUBEMAIL_DEFAULT_PORT", "1143")
+//       // SMTP host & port
+//       .WithEnvironment("ROUNDCUBEMAIL_SMTP_SERVER", mail.GetEndpoint("smtp"))
+//       .WithEnvironment("ROUNDCUBEMAIL_SMTP_PORT", "1025")
+//       // expose the web UI
+//       .WithEndpoint(8088, 80, "http");   // http://localhost:8088
+#endregion
 
 builder.AddProject<Projects.Famoria_Api>("famoria-api")
     .WithReference(cosmos)
     .WaitFor(cosmosDb);
 builder.AddProject<Projects.Famoria_AuthTester>("famoria-authtester")
-    .WithReference(cosmos)
-    .WithEndpoint(7280, 80, "http");
+    .WithReference(cosmos);
 builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher-worker")
-    //.WithReference(mailu)
-    //.WaitFor(mailu)
     .WithReference(cosmos)
     .WaitFor(cosmosDb)
     .WithReference(blobContainer)

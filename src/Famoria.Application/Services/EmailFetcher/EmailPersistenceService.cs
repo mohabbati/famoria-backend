@@ -1,15 +1,11 @@
-using System.Text;
-
 using Azure.Storage.Blobs;
-
+using CosmosKit;
 using Famoria.Application.Interfaces;
-using Famoria.Application.Models;
 using Famoria.Domain.Common;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
-
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 using MimeKit;
 
@@ -18,20 +14,17 @@ namespace Famoria.Application.Services;
 public class EmailPersistenceService : IEmailPersistenceService
 {
     private readonly BlobContainerClient _blobContainerClient;
-    private readonly CosmosClient _cosmosClient;
-    private readonly CosmosDbSettings _settings;
+    private readonly IRepository<FamilyItem> _repository;
     private readonly ILogger<EmailPersistenceService> _logger;
 
     public EmailPersistenceService(
         BlobContainerClient blobContainerClient,
-        CosmosClient cosmosClient,
-        CosmosDbSettings settings,
+        IRepository<FamilyItem> repository,
         ILogger<EmailPersistenceService> logger)
     {
         _blobContainerClient = blobContainerClient;
-        _cosmosClient = cosmosClient;
-        _settings = settings;
         _logger = logger;
+        _repository = repository;
     }
 
     public async Task<string> PersistAsync(string emlContent, string familyId, CancellationToken cancellationToken)
@@ -88,9 +81,7 @@ public class EmailPersistenceService : IEmailPersistenceService
             };
 
             // Persist to Cosmos DB
-            var db = _cosmosClient.GetDatabase(_settings.DatabaseId);
-            var container = db.GetContainer("family-items");
-            await container.CreateItemAsync(familyItem, new PartitionKey(familyId), cancellationToken: cancellationToken).ConfigureAwait(false);
+            await _repository.AddAsync(familyItem, cancellationToken);
 
             return itemId;
         }

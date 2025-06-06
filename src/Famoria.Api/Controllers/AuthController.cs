@@ -1,3 +1,4 @@
+using CosmosKit;
 using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
 using Famoria.Domain.Common;
@@ -13,8 +14,8 @@ namespace Famoria.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly GoogleOAuthHelper _helper;
-    private readonly CosmosClient _cosmos;
-    private readonly CosmosDbSettings _settings;
+    private readonly IRepository<FamoriaUser> _userRepository;
+    private readonly IRepository<Family> _familyRepository;
     private readonly JwtService _jwt;
     private readonly IMailOAuthProvider _google;
     private readonly IUserLinkedAccountService _linkedAccount;
@@ -22,20 +23,20 @@ public class AuthController : ControllerBase
 
     public AuthController(
         GoogleOAuthHelper helper,
-        CosmosClient cosmos,
-        CosmosDbSettings settings,
         JwtService jwt,
         IMailOAuthProvider google,
         IUserLinkedAccountService linkedAccount,
-        IAesCryptoService crypto)
+        IAesCryptoService crypto,
+        IRepository<FamoriaUser> userRepository,
+        IRepository<Family> familyRepository)
     {
         _helper = helper;
-        _cosmos = cosmos;
-        _settings = settings;
         _jwt = jwt;
         _google = google;
         _linkedAccount = linkedAccount;
         _crypto = crypto;
+        _userRepository = userRepository;
+        _familyRepository = familyRepository;
     }
 
     [HttpGet("google/signin")]
@@ -50,14 +51,12 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> GoogleSignInCallback(string code, CancellationToken ct)
     {
         var payload = await _helper.ExchangeCodeAsync(code, ct);
-        var db = _cosmos.GetDatabase(_settings.DatabaseId);
-        var users = db.GetContainer("users");
-        var families = db.GetContainer("families");
+
         FamoriaUser? user = null;
         try
         {
-            var resp = await users.ReadItemAsync<FamoriaUser>(payload.Subject, new PartitionKey(payload.Subject));
-            user = resp.Resource;
+            var resp = await _userRepository.GetByAsync(new FamoriaUser(payload.Subject), ct);
+            user = resp;
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -83,19 +82,16 @@ public class AuthController : ControllerBase
                 CreatedAt = DateTime.UtcNow,
                 ModifiedAt = DateTime.UtcNow
             };
-            await families.CreateItemAsync(family, new PartitionKey(familyId), cancellationToken: ct);
+            await _familyRepository.AddAsync(family, ct);
 
-            user = new FamoriaUser
-            {
-                Id = payload.Subject,
-                Email = payload.Email!,
-                Provider = "Google",
-                ExternalSub = payload.Subject,
-                FamilyIds = [familyId],
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow
-            };
-            await users.CreateItemAsync(user, new PartitionKey(user.Id), cancellationToken: ct);
+            user = new FamoriaUser(
+                payload.Subject,
+                payload.Email!,
+                "Google",
+                payload.Subject,
+                [familyId]
+            );
+            await _userRepository.AddAsync(user, ct);
         }
         else
         {

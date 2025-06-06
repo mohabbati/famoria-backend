@@ -1,5 +1,4 @@
 using Famoria.Application;
-using Famoria.Application.Models;
 using Famoria.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -8,7 +7,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder
     .AddServiceDefaults()
-    .AddInfrastructure(builder.Configuration.Get<AppSettings>()!)
+    .AddInfrastructure()
     .AddApiServices();
 
 builder.Services.AddControllers();
@@ -17,10 +16,6 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new() { Title = "Famoria API", Version = "v1" });
 });
-
-builder
-    .AddInfrastructure(builder.Configuration.Get<AppSettings>()!)
-    .AddApiServices();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
