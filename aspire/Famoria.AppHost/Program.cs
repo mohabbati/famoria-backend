@@ -20,6 +20,7 @@ var cosmosDb = cosmos.AddCosmosDatabase("cosmos-db", "famoria");
 cosmosDb.AddContainer("families", "/id");
 cosmosDb.AddContainer("family-items", "/FamilyId");
 cosmosDb.AddContainer("family-tasks", "/FamilyId");
+cosmosDb.AddContainer("users", "/id");
 //cosmosDb.AddContainer("user-linked-accounts", "/");
 
 var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
@@ -54,6 +55,9 @@ builder.AddContainer("webmail", "roundcube/roundcubemail", "1.6.10-apache")
 builder.AddProject<Projects.Famoria_Api>("famoria-api")
     .WithReference(cosmos)
     .WaitFor(cosmosDb);
+builder.AddProject<Projects.Famoria_AuthTester>("famoria-authtester")
+    .WithReference(cosmos)
+    .WithEndpoint(7280, 80, "http");
 builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher-worker")
     //.WithReference(mailu)
     //.WaitFor(mailu)

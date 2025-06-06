@@ -1,0 +1,29 @@
+<button @onclick="SignIn">Sign in with Google</button>
+<p>@_familyId</p>
+
+@code {
+    private string? _familyId;
+
+    private async Task SignIn()
+    {
+        var url = Navigation.ToAbsoluteUri("/auth/google/signin");
+        var popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "google", "width=500,height=600");
+        await JS.InvokeVoidAsync("addEventListener", "message", DotNetObjectReference.Create(this), nameof(OnMessage));
+    }
+
+    [JSInvokable]
+    public void OnMessage(MessageEventArgs args)
+    {
+        if (args.Data is JsonElement json && json.TryGetProperty("token", out var t))
+        {
+            var token = t.GetString();
+            var familyId = json.GetProperty("familyId").GetString();
+            JS.InvokeVoidAsync("localStorage.setItem", "token", token);
+            _familyId = familyId;
+            StateHasChanged();
+        }
+    }
+
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+}

@@ -6,6 +6,10 @@ using Famoria.Domain.Enums;
 using Famoria.Infrastructure;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Azure.Cosmos;
+using Famoria.Domain.Common;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +29,20 @@ builder
     .AddInfrastructure(builder.Configuration.Get<AppSettings>()!)
     .AddApiServices();
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var secret = builder.Configuration["Auth:Jwt:Secret"]!;
+        options.TokenValidationParameters = new()
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secret))
+        };
+    });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
@@ -42,9 +60,85 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Google sign-in
+app.MapGet("/auth/google/signin", (GoogleOAuthHelper helper) =>
+{
+    var state = Guid.NewGuid().ToString("N");
+    var url = helper.BuildAuthUrl(state);
+    return Results.Redirect(url);
+});
+
+app.MapGet("/auth/google/signin/callback",
+async (string code,
+       GoogleOAuthHelper helper,
+       CosmosClient cosmos,
+       CosmosDbSettings settings,
+       JwtService jwt,
+       CancellationToken ct) =>
+{
+    var payload = await helper.ExchangeCodeAsync(code, ct);
+    var db = cosmos.GetDatabase(settings.DatabaseId);
+    var users = db.GetContainer("users");
+    var families = db.GetContainer("families");
+    User? user = null;
+    try
+    {
+        var resp = await users.ReadItemAsync<User>(payload.Subject, new PartitionKey(payload.Subject));
+        user = resp.Resource;
+    }
+    catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+    {
+    }
+
+    string familyId;
+    if (user is null)
+    {
+        familyId = IdGenerator.NewId();
+        var family = new Family
+        {
+            Id = familyId,
+            DisplayName = payload.Name ?? payload.Email!,
+            Members =
+            [
+                new FamilyMember
+                {
+                    UserId = payload.Subject,
+                    Name = payload.Name ?? payload.Email!,
+                    Role = FamilyMemberRole.Admin
+                }
+            ],
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow
+        };
+        await families.CreateItemAsync(family, new PartitionKey(familyId), cancellationToken: ct);
+
+        user = new User
+        {
+            Id = payload.Subject,
+            Email = payload.Email!,
+            Provider = "Google",
+            ExternalSub = payload.Subject,
+            FamilyIds = [familyId],
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow
+        };
+        await users.CreateItemAsync(user, new PartitionKey(user.Id), cancellationToken: ct);
+    }
+    else
+    {
+        familyId = user.FamilyIds.First();
+    }
+
+    var token = jwt.Sign(user.Id, user.Email, familyId);
+    var html = $"<script>window.opener.postMessage({{token:'{token}',familyId:'{familyId}'}},'*');window.close();</script>";
+    return Results.Content(html, "text/html");
+});
 
 // Minimal-API endpoints for Google OAuth
 app.MapGet("/auth/google", (IMailOAuthProvider google, HttpContext ctx) =>
