@@ -17,8 +17,10 @@ public static class ConfigureApplication
     public static IHostApplicationBuilder AddApiServices(this IHostApplicationBuilder builder)
     {
         builder.Services.Configure<GoogleAuthSettings>(builder.Configuration.GetSection("Auth:Google"));
+        builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Auth:Jwt"));
 
         builder.Services.AddHttpClient<IMailOAuthProvider, GmailOAuthProvider>();
+        builder.Services.AddHttpClient<GoogleOAuthHelper>();
 
         // Register a real implementation for IUserIntegrationConnectionService here
         // builder.Services.AddSingleton<IUserIntegrationConnectionService, CosmosDbIntegrationConnectionService>();
@@ -27,6 +29,7 @@ public static class ConfigureApplication
         builder.Services.AddSingleton<IAesCryptoService>(new AesCryptoService(aesKey));
 
         builder.Services.AddSingleton<IUserLinkedAccountService, UserLinkedAccountService>();
+        builder.Services.AddSingleton<JwtService>();
 
         return builder;
     }
