@@ -23,7 +23,9 @@ public class GoogleOAuthHelperTests
     {
         var options = Mock.Of<IOptionsMonitor<GoogleAuthSettings>>(o => o.CurrentValue == TestSettings);
         var mockOAuthProvider = new Mock<IMailOAuthProvider>();
-        var helper = new GoogleOAuthHelper(new HttpClient(), options, mockOAuthProvider.Object);
+        var mockJwtValidator = new Mock<IGoogleJwtValidator>();
+        
+        var helper = new GoogleOAuthHelper(new HttpClient(), options, mockOAuthProvider.Object, mockJwtValidator.Object);
         
         var url = helper.BuildAuthUrl("state123");
         
@@ -35,7 +37,48 @@ public class GoogleOAuthHelperTests
         url.Should().Contain("prompt=select_account");
     }
 
-    // Note: We can't easily test ExchangeCodeAsync because it calls the static method
-    // GoogleJsonWebSignature.ValidateAsync, which requires special mocking techniques.
-    // In a real project, you might use a library like Fody or refactor the code to be more testable.
+    [Fact]
+    public async Task ExchangeCodeAsync_ShouldReturnValidatedPayload()
+    {
+        // Arrange
+        var options = Mock.Of<IOptionsMonitor<GoogleAuthSettings>>(o => o.CurrentValue == TestSettings);
+        var mockOAuthProvider = new Mock<IMailOAuthProvider>();
+        var mockJwtValidator = new Mock<IGoogleJwtValidator>();
+        
+        var authCode = "test-auth-code";
+        var idToken = "test-id-token";
+        var expectedPayload = new GoogleJsonWebSignature.Payload
+        {
+            Email = "test@example.com",
+            Name = "Test User",
+            Subject = "12345",
+            EmailVerified = true
+        };
+        
+        // Setup the mock OAuth provider to return a token result with our test ID token
+        mockOAuthProvider
+            .Setup(p => p.ExchangeCodeAsync(authCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TokenResult("access-token", "refresh-token", 3600, "test@example.com", idToken));
+        
+        // Setup the mock JWT validator to return our expected payload
+        mockJwtValidator
+            .Setup(v => v.ValidateAsync(idToken))
+            .ReturnsAsync(expectedPayload);
+        
+        var helper = new GoogleOAuthHelper(new HttpClient(), options, mockOAuthProvider.Object, mockJwtValidator.Object);
+        
+        // Act
+        var result = await helper.ExchangeCodeAsync(authCode, CancellationToken.None);
+        
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeSameAs(expectedPayload);
+        result.Email.Should().Be("test@example.com");
+        result.Name.Should().Be("Test User");
+        result.Subject.Should().Be("12345");
+        
+        // Verify that the methods were called with the expected parameters
+        mockOAuthProvider.Verify(p => p.ExchangeCodeAsync(authCode, It.IsAny<CancellationToken>()), Times.Once);
+        mockJwtValidator.Verify(v => v.ValidateAsync(idToken), Times.Once);
+    }
 }

@@ -11,15 +11,18 @@ public class GoogleOAuthHelper
     private readonly IOptionsMonitor<GoogleAuthSettings> _settings;
     private readonly HttpClient _httpClient;
     private readonly IMailOAuthProvider _mailOAuthProvider;
+    private readonly IGoogleJwtValidator _jwtValidator;
 
     public GoogleOAuthHelper(
         HttpClient httpClient, 
         IOptionsMonitor<GoogleAuthSettings> settings,
-        IMailOAuthProvider mailOAuthProvider)
+        IMailOAuthProvider mailOAuthProvider,
+        IGoogleJwtValidator jwtValidator)
     {
         _httpClient = httpClient;
         _settings = settings;
         _mailOAuthProvider = mailOAuthProvider;
+        _jwtValidator = jwtValidator;
     }
 
     public string BuildAuthUrl(string state)
@@ -34,8 +37,8 @@ public class GoogleOAuthHelper
         // Use the IMailOAuthProvider implementation to exchange the code
         var tokenResult = await _mailOAuthProvider.ExchangeCodeAsync(code, ct);
         
-        // We need to validate the ID token from the Google JWT
-        var payload = await GoogleJsonWebSignature.ValidateAsync(tokenResult.IdToken);
+        // Use the injected validator to validate the ID token
+        var payload = await _jwtValidator.ValidateAsync(tokenResult.IdToken);
         return payload;
     }
 }

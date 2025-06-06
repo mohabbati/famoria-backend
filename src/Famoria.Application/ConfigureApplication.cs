@@ -1,14 +1,11 @@
 using System.Reflection;
-
 using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
+using Famoria.Application.Services.Auth;
 using Famoria.Application.Services.Integrations;
-
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-
 using Polly;
-using Polly.Retry;
 
 namespace Famoria.Application;
 
@@ -21,6 +18,9 @@ public static class ConfigureApplication
 
         builder.Services.AddHttpClient<IMailOAuthProvider, GmailOAuthProvider>();
         builder.Services.AddHttpClient<GoogleOAuthHelper>();
+        
+        // Register the Google JWT validator
+        builder.Services.AddSingleton<IGoogleJwtValidator, GoogleJwtValidator>();
 
         // Register a real implementation for IUserIntegrationConnectionService here
         // builder.Services.AddSingleton<IUserIntegrationConnectionService, CosmosDbIntegrationConnectionService>();
