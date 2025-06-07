@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Collections.Generic;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,17 +16,19 @@ public class JwtService
         _secret = Encoding.UTF8.GetBytes(options.CurrentValue.Secret);
     }
 
-    public string Sign(string subject, string email, string familyId)
+    public string Sign(string subject, string email, string? familyId = null)
     {
         var handler = new JwtSecurityTokenHandler();
         var creds = new SigningCredentials(new SymmetricSecurityKey(_secret), SecurityAlgorithms.HmacSha256);
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, subject),
+            new Claim(JwtRegisteredClaimNames.Email, email)
+        };
+        if (!string.IsNullOrEmpty(familyId))
+            claims.Add(new Claim("family_id", familyId));
         var token = new JwtSecurityToken(
-            claims: new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, subject),
-                new Claim(JwtRegisteredClaimNames.Email, email),
-                new Claim("family_id", familyId)
-            },
+            claims: claims,
             expires: DateTime.UtcNow.AddHours(12),
             signingCredentials: creds);
         return handler.WriteToken(token);

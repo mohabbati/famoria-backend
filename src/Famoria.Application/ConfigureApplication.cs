@@ -23,14 +23,20 @@ public static class ConfigureApplication
 
         // Register a real implementation for IUserIntegrationConnectionService here
         // builder.Services.AddSingleton<IUserIntegrationConnectionService, CosmosDbIntegrationConnectionService>();
-        // Register AesCryptoService with injected key (replace with your actual key retrieval logic)
-        var aesKey = Convert.FromBase64String(builder.Configuration["Auth:EncryptionKey"] ?? throw new InvalidOperationException("EncryptionKey not configured"));
+        // Retrieve the AES key from environment or configuration. In production this
+        // should come from a secure store such as Azure Key Vault.
+        var keyBase64 = Environment.GetEnvironmentVariable("AUTH_ENCRYPTION_KEY")
+                         ?? builder.Configuration["Auth:EncryptionKey"];
+        if (string.IsNullOrEmpty(keyBase64))
+            throw new InvalidOperationException("EncryptionKey not configured");
+        var aesKey = Convert.FromBase64String(keyBase64);
         builder.Services.AddSingleton<IAesCryptoService>(new AesCryptoService(aesKey));
 
         builder.Services.AddSingleton<IUserLinkedAccountService, UserLinkedAccountService>();
         builder.Services.AddSingleton<JwtService>();
         builder.Services.AddTransient<GoogleSignInService>();
         builder.Services.AddTransient<GmailLinkService>();
+        builder.Services.AddTransient<Famoria.Application.Services.Family.FamilyCreationService>();
 
         return builder;
     }

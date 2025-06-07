@@ -17,13 +17,32 @@
         }
     </button>
 
+    @if (!string.IsNullOrEmpty(_token))
+    {
+        <button class="link-button" @onclick="LinkGmail" disabled="@_isLinking">
+            @if (_isLinking)
+            {
+                <span>Linking...</span>
+            }
+            else
+            {
+                <span>Link Gmail</span>
+            }
+        </button>
+    }
+
     @if (!string.IsNullOrEmpty(_errorMessage))
     {
         <div class="error-message">
             <p>@_errorMessage</p>
         </div>
     }
-
+    @if (!string.IsNullOrEmpty(_linkMessage))
+    {
+        <div class="success-message">
+            <p>@_linkMessage</p>
+        </div>
+    }
     @if (!string.IsNullOrEmpty(_familyId))
     {
         <div class="success-message">
@@ -34,10 +53,14 @@
 </div>
 
 @code {  
+    private string? _token;
     private string? _familyId;
     private string? _errorMessage;
     private bool _isSigningIn = false;
+    private bool _isLinking = false;
+    private string? _linkMessage;
     private IJSObjectReference? _popup;
+    private IJSObjectReference? _linkPopup;
     private DotNetObjectReference<Index>? _objRef;
 
     protected override void OnInitialized()
@@ -45,7 +68,7 @@
         _objRef = DotNetObjectReference.Create(this);
     }
 
-    private async Task SignIn()  
+    private async Task SignIn()
     {
         try
         {
@@ -53,7 +76,7 @@
             _errorMessage = null;
             StateHasChanged();
 
-            var url = Navigation.ToAbsoluteUri("/auth/google/signin");
+            var url = Navigation.ToAbsoluteUri("/auth/signin/google");
             _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "google-signin", "width=500,height=600,resizable=yes");
             
             // Add event listener for messages from the popup
@@ -66,6 +89,50 @@
         {
             _errorMessage = $"Error initiating sign-in: {ex.Message}";
             _isSigningIn = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LinkGmail()
+    {
+        try
+        {
+            _isLinking = true;
+            _linkMessage = null;
+            StateHasChanged();
+
+            var url = Navigation.ToAbsoluteUri("/auth/link/gmail");
+            _linkPopup = await JS.InvokeAsync<IJSObjectReference>("open", url, "gmail-link", "width=500,height=600,resizable=yes");
+
+            await JS.InvokeVoidAsync("window.addEventListener", "message", _objRef, nameof(OnMessage));
+
+            for (int i = 0; i < 120; i++)
+            {
+                await Task.Delay(1000);
+                try
+                {
+                    var closed = await JS.InvokeAsync<bool>("popupIsClosed", _linkPopup);
+                    if (closed)
+                        break;
+                }
+                catch { break; }
+            }
+
+            if (string.IsNullOrEmpty(_linkMessage))
+                _linkMessage = "Link cancelled";
+        }
+        catch (Exception ex)
+        {
+            _linkMessage = $"Link failed: {ex.Message}";
+        }
+        finally
+        {
+            _isLinking = false;
+            try
+            {
+                await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
+            }
+            catch { }
             StateHasChanged();
         }
     }
@@ -112,6 +179,7 @@
         }
         
         _isSigningIn = false;
+        _isLinking = false;
         if (errorMessage != null)
         {
             _errorMessage = errorMessage;
@@ -125,14 +193,17 @@
     {  
         try
         {
-            if (element.TryGetProperty("token", out var t) && element.TryGetProperty("familyId", out var f))  
-            {  
-                var token = t.GetString();  
-                var familyId = f.GetString();
+            if (element.TryGetProperty("token", out var t))
+            {
+                var token = t.GetString();
+                string? familyId = null;
+                if (element.TryGetProperty("familyId", out var f))
+                    familyId = f.GetString();
 
-                if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(familyId))
+                if (!string.IsNullOrEmpty(token))
                 {
-                    await JS.InvokeVoidAsync("localStorage.setItem", "token", token);  
+                    await JS.InvokeVoidAsync("sessionStorage.setItem", "token", token);
+                    _token = token;
                     _familyId = familyId;
                     await CleanupAuth();
                 }
@@ -141,9 +212,28 @@
                     await CleanupAuth("Received invalid authentication data.");
                 }
             }
-            else
+            else if (element.TryGetProperty("gmail", out var g))
             {
-                // Ignore messages that don't contain auth data
+                _linkMessage = g.GetString();
+                _isLinking = false;
+                try
+                {
+                    await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
+                }
+                catch { }
+                StateHasChanged();
+            }
+            else if (element.TryGetProperty("error", out var e))
+            {
+                _errorMessage = e.GetString();
+                _isSigningIn = false;
+                _isLinking = false;
+                try
+                {
+                    await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
+                }
+                catch { }
+                StateHasChanged();
             }
         }
         catch (Exception ex)
