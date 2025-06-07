@@ -51,17 +51,13 @@
             _email = null;
             StateHasChanged();
 
-            // Generate a unique state parameter
-            var state = Guid.NewGuid().ToString();
-            var url = $"https://localhost:7001/auth/signin/google?state={state}";
+            // Do NOT generate or append a state parameter. Let the server handle it.
+            var url = "https://localhost:7001/auth/signin/google";
             
             // Open popup with specific features
             var features = "width=500,height=600,resizable=yes,status=yes,scrollbars=yes,location=yes";
             _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "google-signin", features);
-            
-            // Store state in session storage
-            await JS.InvokeVoidAsync("sessionStorage.setItem", "oauth_state", state);
-            
+
             await JS.InvokeVoidAsync("window.addEventListener", "message", _objRef, nameof(OnMessage));
             await StartPopupCheck();
         }

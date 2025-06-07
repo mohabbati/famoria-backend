@@ -46,7 +46,13 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secret))
         };
     })
-    .AddCookie("GoogleTemp")
+    .AddCookie("GoogleTemp", options =>
+    {
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.HttpOnly = true;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(5); // Use ExpireTimeSpan instead of Cookie.Expiration
+    })
     .AddGoogle("GoogleSignIn", options =>
     {
         options.ClientId = builder.Configuration["Auth:Google:ClientId"]!;
@@ -58,8 +64,8 @@ builder.Services.AddAuthentication(options =>
         options.Scope.Add("profile");
         options.SaveTokens = true;
         options.UsePkce = true;
-        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+        options.SignInScheme = "GoogleTemp";
+        options.CorrelationCookie.SameSite = SameSiteMode.None;
         options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
         options.CorrelationCookie.HttpOnly = true;
         options.CorrelationCookie.Expiration = TimeSpan.FromMinutes(5);
@@ -76,8 +82,8 @@ builder.Services.AddAuthentication(options =>
         options.AccessType = "offline";
         options.SaveTokens = true;
         options.UsePkce = true;
-        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+        options.SignInScheme = "GoogleTemp";
+        options.CorrelationCookie.SameSite = SameSiteMode.None;
         options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
         options.CorrelationCookie.HttpOnly = true;
         options.CorrelationCookie.Expiration = TimeSpan.FromMinutes(5);
