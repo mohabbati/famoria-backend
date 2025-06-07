@@ -36,8 +36,8 @@ builder.Services.AddAuthentication(options =>
     .AddCookie("GoogleTemp")
     .AddGoogle("GoogleSignIn", options =>
     {
-        options.ClientId = builder.Configuration["Google:ClientId"]!;
-        options.ClientSecret = builder.Configuration["Google:ClientSecret"]!;
+        options.ClientId = builder.Configuration["Auth:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Auth:Google:ClientSecret"]!;
         options.CallbackPath = "/signin-google";
         options.Scope.Clear();
         options.Scope.Add("openid");
@@ -48,8 +48,8 @@ builder.Services.AddAuthentication(options =>
     })
     .AddGoogle("GoogleMailLink", options =>
     {
-        options.ClientId = builder.Configuration["Google:ClientId"]!;
-        options.ClientSecret = builder.Configuration["Google:ClientSecret"]!;
+        options.ClientId = builder.Configuration["Auth:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Auth:Google:ClientSecret"]!;
         options.CallbackPath = "/link-google-mail";
         options.Scope.Clear();
         options.Scope.Add("openid");

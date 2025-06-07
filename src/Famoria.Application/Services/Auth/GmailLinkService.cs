@@ -1,5 +1,4 @@
 using Famoria.Application.Interfaces;
-using Famoria.Domain.Common;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
 using System.Security.Claims;
@@ -19,8 +18,10 @@ public class GmailLinkService
 
     public async Task LinkAsync(string familyId, ClaimsPrincipal principal, string accessToken, string? refreshToken, int expiresInSeconds, CancellationToken cancellationToken = default)
     {
-        var userId = principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("sub missing");
-        var email = principal.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+        var userId = principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? 
+                    principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ?? 
+                    throw new InvalidOperationException("sub missing");
+        var email = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ?? string.Empty;
 
         var conn = new UserLinkedAccount
         {

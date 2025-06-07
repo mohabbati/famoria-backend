@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Famoria.Application.Interfaces;
+using CosmosKit;
 using Famoria.Domain.Common;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
@@ -22,9 +22,12 @@ public class GoogleSignInService
 
     public async Task<(string Token, string FamilyId)> SignInAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
     {
-        var sub = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub") ?? throw new InvalidOperationException("sub missing");
-        var email = principal.FindFirstValue(ClaimTypes.Email) ?? throw new InvalidOperationException("email missing");
-        var name = principal.FindFirstValue(ClaimTypes.Name) ?? email;
+        var sub = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ?? 
+                 principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? 
+                 throw new InvalidOperationException("sub missing");
+        var email = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ?? 
+                   throw new InvalidOperationException("email missing");
+        var name = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? email;
 
         FamoriaUser? user = null;
         try
