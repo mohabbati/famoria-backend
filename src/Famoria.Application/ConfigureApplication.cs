@@ -36,7 +36,7 @@ public static class ConfigureApplication
         builder.Services.AddSingleton<JwtService>();
         builder.Services.AddTransient<GoogleSignInService>();
         builder.Services.AddTransient<GmailLinkService>();
-        builder.Services.AddTransient<Famoria.Application.Services.Family.FamilyCreationService>();
+        builder.Services.AddTransient<FamilyCreationService>();
 
         return builder;
     }

@@ -5,7 +5,7 @@ using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
 using Microsoft.Azure.Cosmos;
 
-namespace Famoria.Application.Services.Family;
+namespace Famoria.Application.Services;
 
 public class FamilyCreationService
 {

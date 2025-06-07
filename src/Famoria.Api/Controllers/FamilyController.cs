@@ -1,9 +1,7 @@
-using Famoria.Application.Services.Family;
-using Famoria.Application.Services.Auth;
+using Famoria.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Collections.Generic;
 
 namespace Famoria.Api.Controllers;
 

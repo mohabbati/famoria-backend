@@ -56,7 +56,6 @@ builder.Services.AddAuthentication(options =>
         options.Scope.Add("email");
         options.Scope.Add("https://www.googleapis.com/auth/gmail.readonly");
         options.AccessType = "offline";
-        options.Prompt = "consent";
         options.SaveTokens = true;
         options.SignInScheme = "GoogleTemp";
     });

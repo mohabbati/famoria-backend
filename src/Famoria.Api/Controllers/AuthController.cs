@@ -34,21 +34,24 @@ public class AuthController : ControllerBase
         var result = await HttpContext.AuthenticateAsync("GoogleTemp");
         if (!result.Succeeded || result.Principal is null)
         {
-            var html = "<script>window.opener.postMessage({error:'Authentication failed'},'*');window.close();</script>";
-            return Content(html, "text/html");
+            return Content(
+                "<script>window.opener.postMessage({error:'Authentication failed'},'*');window.close();</script>",
+                "text/html");
         }
 
         var idToken = result.Properties.GetTokenValue("id_token");
         if (string.IsNullOrEmpty(idToken))
         {
-            var html = "<script>window.opener.postMessage({error:'Missing ID token'},'*');window.close();</script>";
-            return Content(html, "text/html");
+            return Content(
+                "<script>window.opener.postMessage({error:'Missing ID token'},'*');window.close();</script>",
+                "text/html");
         }
         var payload = await _validator.ValidateAsync(idToken);
         if (!payload.EmailVerified)
         {
-            var html = "<script>window.opener.postMessage({error:'Unverified email'},'*');window.close();</script>";
-            return Content(html, "text/html");
+            return Content(
+                "<script>window.opener.postMessage({error:'Unverified email'},'*');window.close();</script>",
+                "text/html");
         }
 
         var token = await _signIn.SignInAsync(result.Principal, ct);
@@ -74,30 +77,35 @@ public class AuthController : ControllerBase
         var result = await HttpContext.AuthenticateAsync("GoogleTemp");
         if (!result.Succeeded || result.Principal is null)
         {
-            var html = "<script>window.opener.postMessage({error:'Authentication failed'},'*');window.close();</script>";
-            return Content(html, "text/html");
+            return Content(
+                "<script>window.opener.postMessage({error:'Authentication failed'},'*');window.close();</script>",
+                "text/html");
         }
         var access = result.Properties.GetTokenValue("access_token")!;
         var refresh = result.Properties.GetTokenValue("refresh_token");
         if (string.IsNullOrEmpty(refresh))
         {
-            var html = "<script>window.opener.postMessage({error:'No refresh token returned'},'*');window.close();</script>";
-            return Content(html, "text/html");
+            return Content(
+                "<script>window.opener.postMessage({error:'No refresh token returned'},'*');window.close();</script>",
+                "text/html");
         }
         var linkedEmail = result.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
         var currentEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
         if (!string.Equals(linkedEmail, currentEmail, StringComparison.OrdinalIgnoreCase))
         {
-            var html = "<script>window.opener.postMessage({error:'Email mismatch'},'*');window.close();</script>";
-            return Content(html, "text/html");
+            return Content(
+                "<script>window.opener.postMessage({error:'Email mismatch'},'*');window.close();</script>",
+                "text/html");
         }
         var expires = int.TryParse(result.Properties.GetTokenValue("expires_in"), out var e) ? e : 0;
         var familyId = User.FindFirst("family_id")?.Value;
         if (string.IsNullOrEmpty(familyId))
         {
-            var html = "<script>window.opener.postMessage({error:'No family selected'},'*');window.close();</script>";
-            return Content(html, "text/html");
+            return Content(
+                "<script>window.opener.postMessage({error:'No family selected'},'*');window.close();</script>",
+                "text/html");
         }
+
         await _gmailLink.LinkAsync(familyId, result.Principal, access, refresh, expires, ct);
         await HttpContext.SignOutAsync("GoogleTemp");
         var html = "<script>window.opener.postMessage({gmail:'linked'},'*');window.close();</script>";
