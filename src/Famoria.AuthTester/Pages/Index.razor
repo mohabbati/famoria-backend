@@ -1,66 +1,39 @@
 @page "/"
-@using Microsoft.JSInterop  
-@using System.Text.Json  
+@using Microsoft.JSInterop
+@using System.Text.Json
 @implements IAsyncDisposable
 
-<h1>Auth Tester</h1>
+<div class="container">
+    <h1>Google Sign-In Tester</h1>
 
-<div class="auth-container">
-    <button class="signin-button" @onclick="SignIn" disabled="@_isSigningIn">
-        @if (_isSigningIn)
+    <div class="auth-status">
+        @if (_isLoading)
         {
-            <span>Signing in...</span>
+            <p>Loading...</p>
         }
-        else
+        else if (!string.IsNullOrEmpty(_error))
         {
-            <span>Sign in with Google</span>
+            <p class="error">@_error</p>
         }
+        else if (!string.IsNullOrEmpty(_token))
+        {
+            <p class="success">Successfully signed in!</p>
+            <p>Email: @_email</p>
+            <p>Token: @_token</p>
+        }
+    </div>
+
+    <button class="signin-button" @onclick="StartSignIn" disabled="@_isLoading">
+        Sign in with Google
     </button>
-
-    @if (!string.IsNullOrEmpty(_token))
-    {
-        <button class="link-button" @onclick="LinkGmail" disabled="@_isLinking">
-            @if (_isLinking)
-            {
-                <span>Linking...</span>
-            }
-            else
-            {
-                <span>Link Gmail</span>
-            }
-        </button>
-    }
-
-    @if (!string.IsNullOrEmpty(_errorMessage))
-    {
-        <div class="error-message">
-            <p>@_errorMessage</p>
-        </div>
-    }
-    @if (!string.IsNullOrEmpty(_linkMessage))
-    {
-        <div class="success-message">
-            <p>@_linkMessage</p>
-        </div>
-    }
-    @if (!string.IsNullOrEmpty(_familyId))
-    {
-        <div class="success-message">
-            <p>Signed in successfully!</p>
-            <p>Family ID: @_familyId</p>
-        </div>
-    }
 </div>
 
-@code {  
+@code {
     private string? _token;
-    private string? _familyId;
-    private string? _errorMessage;
-    private bool _isSigningIn = false;
-    private bool _isLinking = false;
-    private string? _linkMessage;
+    private string? _email;
+    private string? _error;
+    private bool _isLoading;
     private IJSObjectReference? _popup;
-    private IJSObjectReference? _linkPopup;
     private DotNetObjectReference<Index>? _objRef;
 
     protected override void OnInitialized()
@@ -68,195 +41,156 @@
         _objRef = DotNetObjectReference.Create(this);
     }
 
-    private async Task SignIn()
+    private async Task StartSignIn()
     {
         try
         {
-            _isSigningIn = true;
-            _errorMessage = null;
+            _isLoading = true;
+            _error = null;
+            _token = null;
+            _email = null;
             StateHasChanged();
 
-            var url = Navigation.ToAbsoluteUri("/auth/signin/google");
-            _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "google-signin", "width=500,height=600,resizable=yes");
+            // Generate a unique state parameter
+            var state = Guid.NewGuid().ToString();
+            var url = $"https://localhost:7001/auth/signin/google?state={state}";
             
-            // Add event listener for messages from the popup
+            // Open popup with specific features
+            var features = "width=500,height=600,resizable=yes,status=yes,scrollbars=yes,location=yes";
+            _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "google-signin", features);
+            
+            // Store state in session storage
+            await JS.InvokeVoidAsync("sessionStorage.setItem", "oauth_state", state);
+            
             await JS.InvokeVoidAsync("window.addEventListener", "message", _objRef, nameof(OnMessage));
-            
-            // Start a timer to check if popup was closed without completing auth
-            await StartPopupClosedCheck();
+            await StartPopupCheck();
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Error initiating sign-in: {ex.Message}";
-            _isSigningIn = false;
+            _error = $"Error: {ex.Message}";
+            _isLoading = false;
             StateHasChanged();
         }
     }
 
-    private async Task LinkGmail()
+    private async Task StartPopupCheck()
     {
-        try
-        {
-            _isLinking = true;
-            _linkMessage = null;
-            StateHasChanged();
-
-            var url = Navigation.ToAbsoluteUri("/auth/link/gmail");
-            _linkPopup = await JS.InvokeAsync<IJSObjectReference>("open", url, "gmail-link", "width=500,height=600,resizable=yes");
-
-            await JS.InvokeVoidAsync("window.addEventListener", "message", _objRef, nameof(OnMessage));
-
-            for (int i = 0; i < 120; i++)
-            {
-                await Task.Delay(1000);
-                try
-                {
-                    var closed = await JS.InvokeAsync<bool>("popupIsClosed", _linkPopup);
-                    if (closed)
-                        break;
-                }
-                catch { break; }
-            }
-
-            if (string.IsNullOrEmpty(_linkMessage))
-                _linkMessage = "Link cancelled";
-        }
-        catch (Exception ex)
-        {
-            _linkMessage = $"Link failed: {ex.Message}";
-        }
-        finally
-        {
-            _isLinking = false;
-            try
-            {
-                await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
-            }
-            catch { }
-            StateHasChanged();
-        }
-    }
-
-    private async Task StartPopupClosedCheck()
-    {
-        // Check every second if popup is closed
         for (int i = 0; i < 120; i++) // 2 minute timeout
         {
             await Task.Delay(1000);
             
             try
             {
-                // Check if popup is closed
                 var closed = await JS.InvokeAsync<bool>("popupIsClosed", _popup);
-                if (closed && string.IsNullOrEmpty(_familyId))
+                if (closed && string.IsNullOrEmpty(_token))
                 {
-                    await CleanupAuth("Sign-in was cancelled or timed out.");
+                    _error = "Sign-in was cancelled or timed out.";
+                    _isLoading = false;
+                    StateHasChanged();
                     break;
                 }
             }
             catch
             {
-                // If we can't access the popup, it's likely closed
-                if (string.IsNullOrEmpty(_familyId))
+                if (string.IsNullOrEmpty(_token))
                 {
-                    await CleanupAuth("Sign-in window was closed.");
+                    _error = "Sign-in window was closed.";
+                    _isLoading = false;
+                    StateHasChanged();
                 }
                 break;
             }
         }
     }
 
-    private async Task CleanupAuth(string? errorMessage = null)
+    [JSInvokable]
+    public async Task OnMessage(JsonElement element)
     {
-        // Remove event listener
-        if (_objRef != null)
-        {
-            try
-            {
-                await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
-            }
-            catch { /* Ignore errors during cleanup */ }
-        }
-        
-        _isSigningIn = false;
-        _isLinking = false;
-        if (errorMessage != null)
-        {
-            _errorMessage = errorMessage;
-        }
-        
-        StateHasChanged();
-    }
-
-    [JSInvokable]  
-    public async Task OnMessage(JsonElement element)  
-    {  
         try
         {
-            if (element.TryGetProperty("token", out var t))
+            if (element.TryGetProperty("token", out var tokenElement))
             {
-                var token = t.GetString();
-                string? familyId = null;
-                if (element.TryGetProperty("familyId", out var f))
-                    familyId = f.GetString();
+                _token = tokenElement.GetString();
+                if (element.TryGetProperty("email", out var emailElement))
+                {
+                    _email = emailElement.GetString();
+                }
+                await JS.InvokeVoidAsync("sessionStorage.setItem", "token", _token);
+            }
+            else if (element.TryGetProperty("error", out var errorElement))
+            {
+                _error = errorElement.GetString();
+            }
 
-                if (!string.IsNullOrEmpty(token))
-                {
-                    await JS.InvokeVoidAsync("sessionStorage.setItem", "token", token);
-                    _token = token;
-                    _familyId = familyId;
-                    await CleanupAuth();
-                }
-                else
-                {
-                    await CleanupAuth("Received invalid authentication data.");
-                }
-            }
-            else if (element.TryGetProperty("gmail", out var g))
-            {
-                _linkMessage = g.GetString();
-                _isLinking = false;
-                try
-                {
-                    await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
-                }
-                catch { }
-                StateHasChanged();
-            }
-            else if (element.TryGetProperty("error", out var e))
-            {
-                _errorMessage = e.GetString();
-                _isSigningIn = false;
-                _isLinking = false;
-                try
-                {
-                    await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
-                }
-                catch { }
-                StateHasChanged();
-            }
+            _isLoading = false;
+            await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
+            StateHasChanged();
         }
         catch (Exception ex)
         {
-            await CleanupAuth($"Error processing authentication: {ex.Message}");
+            _error = $"Error processing response: {ex.Message}";
+            _isLoading = false;
+            StateHasChanged();
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        // Clean up resources
         if (_objRef != null)
         {
             try
             {
                 await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
             }
-            catch { /* Ignore errors during disposal */ }
-            
+            catch { }
             _objRef.Dispose();
         }
     }
 
-    [Inject] private NavigationManager Navigation { get; set; } = default!;  
-    [Inject] private IJSRuntime JS { get; set; } = default!;  
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 }
+
+<style>
+    .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .auth-status {
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 4px;
+        background-color: #f8f9fa;
+    }
+
+    .error {
+        color: #dc3545;
+    }
+
+    .success {
+        color: #28a745;
+    }
+
+    .signin-button {
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.2s;
+    }
+
+    .signin-button:hover {
+        background-color: #357abd;
+    }
+
+    .signin-button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+    }
+</style>

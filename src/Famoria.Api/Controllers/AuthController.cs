@@ -24,11 +24,16 @@ public class AuthController : ControllerBase
     [HttpGet("signin/google")]
     public IActionResult SignIn()
     {
-        var props = new AuthenticationProperties { RedirectUri = "/signin-google" };
+        var props = new AuthenticationProperties
+        {
+            RedirectUri = "/auth/google/signin-callback",
+            AllowRefresh = true,
+            IsPersistent = true
+        };
         return Challenge(props, "GoogleSignIn");
     }
 
-    [HttpGet("/signin-google")]
+    [HttpGet("/signin-callback")]
     public async Task<IActionResult> SignInCallback(CancellationToken ct)
     {
         var result = await HttpContext.AuthenticateAsync("GoogleTemp");
@@ -65,7 +70,12 @@ public class AuthController : ControllerBase
     public IActionResult LinkGmail()
     {
         var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty;
-        var props = new AuthenticationProperties { RedirectUri = "/link-gmail" };
+        var props = new AuthenticationProperties
+        {
+            RedirectUri = "/auth/google/link-callback",
+            AllowRefresh = true,
+            IsPersistent = true
+        };
         props.SetParameter("login_hint", email);
         return Challenge(props, "GmailLink");
     }
