@@ -33,7 +33,7 @@ public class AuthController : ControllerBase
         return Challenge(props, "GoogleSignIn");
     }
 
-    [HttpGet("/signin-callback")]
+    [HttpGet("google/signin-callback")]
     public async Task<IActionResult> SignInCallback(CancellationToken ct)
     {
         var result = await HttpContext.AuthenticateAsync("GoogleTemp");
