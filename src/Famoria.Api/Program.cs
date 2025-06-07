@@ -35,13 +35,6 @@ builder.Services.AddAuthentication(options =>
         options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     })
-    .AddCookie(options =>
-    {
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.HttpOnly = true;
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
-    })
     .AddJwtBearer(options =>
     {
         var secret = builder.Configuration["Auth:Jwt:Secret"]!;
@@ -53,6 +46,7 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secret))
         };
     })
+    .AddCookie("GoogleTemp")
     .AddGoogle("GoogleSignIn", options =>
     {
         options.ClientId = builder.Configuration["Auth:Google:ClientId"]!;
