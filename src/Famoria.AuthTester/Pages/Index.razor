@@ -1,31 +1,171 @@
+@page "/"
 @using Microsoft.JSInterop  
 @using System.Text.Json  
+@implements IAsyncDisposable
 
-<button @onclick="SignIn">Sign in with Google</button>  
-<p>@_familyId</p>  
+<h1>Auth Tester</h1>
+
+<div class="auth-container">
+    <button class="signin-button" @onclick="SignIn" disabled="@_isSigningIn">
+        @if (_isSigningIn)
+        {
+            <span>Signing in...</span>
+        }
+        else
+        {
+            <span>Sign in with Google</span>
+        }
+    </button>
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">
+            <p>@_errorMessage</p>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_familyId))
+    {
+        <div class="success-message">
+            <p>Signed in successfully!</p>
+            <p>Family ID: @_familyId</p>
+        </div>
+    }
+</div>
 
 @code {  
-    private string? _familyId;  
+    private string? _familyId;
+    private string? _errorMessage;
+    private bool _isSigningIn = false;
+    private IJSObjectReference? _popup;
+    private DotNetObjectReference<Index>? _objRef;
+
+    protected override void OnInitialized()
+    {
+        _objRef = DotNetObjectReference.Create(this);
+    }
 
     private async Task SignIn()  
-    {  
-        var url = Navigation.ToAbsoluteUri("/auth/google/signin");  
-        var popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "google", "width=500,height=600");  
-        await JS.InvokeVoidAsync("addEventListener", "message", DotNetObjectReference.Create(this), nameof(OnMessage));  
-    }  
+    {
+        try
+        {
+            _isSigningIn = true;
+            _errorMessage = null;
+            StateHasChanged();
+
+            var url = Navigation.ToAbsoluteUri("/auth/google/signin");
+            _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "google-signin", "width=500,height=600,resizable=yes");
+            
+            // Add event listener for messages from the popup
+            await JS.InvokeVoidAsync("window.addEventListener", "message", _objRef, nameof(OnMessage));
+            
+            // Start a timer to check if popup was closed without completing auth
+            await StartPopupClosedCheck();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error initiating sign-in: {ex.Message}";
+            _isSigningIn = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartPopupClosedCheck()
+    {
+        // Check every second if popup is closed
+        for (int i = 0; i < 120; i++) // 2 minute timeout
+        {
+            await Task.Delay(1000);
+            
+            try
+            {
+                // Check if popup is closed
+                var closed = await JS.InvokeAsync<bool>("popupIsClosed", _popup);
+                if (closed && string.IsNullOrEmpty(_familyId))
+                {
+                    await CleanupAuth("Sign-in was cancelled or timed out.");
+                    break;
+                }
+            }
+            catch
+            {
+                // If we can't access the popup, it's likely closed
+                if (string.IsNullOrEmpty(_familyId))
+                {
+                    await CleanupAuth("Sign-in window was closed.");
+                }
+                break;
+            }
+        }
+    }
+
+    private async Task CleanupAuth(string? errorMessage = null)
+    {
+        // Remove event listener
+        if (_objRef != null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
+            }
+            catch { /* Ignore errors during cleanup */ }
+        }
+        
+        _isSigningIn = false;
+        if (errorMessage != null)
+        {
+            _errorMessage = errorMessage;
+        }
+        
+        StateHasChanged();
+    }
 
     [JSInvokable]  
-    public void OnMessage(JsonElement element)  
+    public async Task OnMessage(JsonElement element)  
     {  
-        if (element.TryGetProperty("token", out var t))  
-        {  
-            var token = t.GetString();  
-            var familyId = element.GetProperty("familyId").GetString();  
-            JS.InvokeVoidAsync("localStorage.setItem", "token", token);  
-            _familyId = familyId;  
-            StateHasChanged();  
-        }  
-    }  
+        try
+        {
+            if (element.TryGetProperty("token", out var t) && element.TryGetProperty("familyId", out var f))  
+            {  
+                var token = t.GetString();  
+                var familyId = f.GetString();
+
+                if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(familyId))
+                {
+                    await JS.InvokeVoidAsync("localStorage.setItem", "token", token);  
+                    _familyId = familyId;
+                    await CleanupAuth();
+                }
+                else
+                {
+                    await CleanupAuth("Received invalid authentication data.");
+                }
+            }
+            else
+            {
+                // Ignore messages that don't contain auth data
+            }
+        }
+        catch (Exception ex)
+        {
+            await CleanupAuth($"Error processing authentication: {ex.Message}");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Clean up resources
+        if (_objRef != null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("window.removeEventListener", "message", _objRef, nameof(OnMessage));
+            }
+            catch { /* Ignore errors during disposal */ }
+            
+            _objRef.Dispose();
+        }
+    }
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;  
     [Inject] private IJSRuntime JS { get; set; } = default!;  
