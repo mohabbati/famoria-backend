@@ -46,16 +46,17 @@ builder.Services.AddAuthentication(options =>
         options.SaveTokens = true;
         options.SignInScheme = "GoogleTemp";
     })
-    .AddGoogle("GoogleMailLink", options =>
+    .AddGoogle("GmailLink", options =>
     {
         options.ClientId = builder.Configuration["Auth:Google:ClientId"]!;
         options.ClientSecret = builder.Configuration["Auth:Google:ClientSecret"]!;
-        options.CallbackPath = "/link-google-mail";
+        options.CallbackPath = "/link-gmail";
         options.Scope.Clear();
         options.Scope.Add("openid");
         options.Scope.Add("email");
-        options.Scope.Add("https://mail.google.com/");
+        options.Scope.Add("https://www.googleapis.com/auth/gmail.readonly");
         options.AccessType = "offline";
+        options.Prompt = "consent";
         options.SaveTokens = true;
         options.SignInScheme = "GoogleTemp";
     });
