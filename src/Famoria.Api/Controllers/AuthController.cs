@@ -56,7 +56,7 @@ public class AuthController : CustomControllerBase
         }
 
         var token = await _signIn.SignInAsync("Google", result.Principal, cancellationToken);
-        await HttpContext.SignOutAsync("GoogleTemp");
+        await HttpContext.SignOutAsync("GoogleSignIn");
         var html = $"<script>window.opener.postMessage({{token:'{token}'}},'*');window.close();</script>";
 
         return Content(html, "text/html");
@@ -89,7 +89,7 @@ public class AuthController : CustomControllerBase
         }
 
         var token = await _signIn.SignInAsync("Microsoft", result.Principal, cancellationToken);
-        await HttpContext.SignOutAsync("MicrosoftTemp");
+        await HttpContext.SignOutAsync("MicrosoftSignIn");
         var html = $"<script>window.opener.postMessage({{token:'{token}'}},'*');window.close();</script>";
 
         return Content(html, "text/html");
