@@ -1,4 +1,3 @@
-using System.Reflection;
 using Famoria.Application.Services;
 using Google.Apis.Auth;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,8 +42,6 @@ public static class ConfigureApplication
     /// </summary>
     public static IHostApplicationBuilder AddEmailFetcherServices(this IHostApplicationBuilder builder)
     {
-        var a = Assembly.GetExecutingAssembly();
-        builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         builder.Services.AddTransient<IEmailFetcher, GmailEmailFetcher>();
         builder.Services.AddTransient<IEmailPersistenceService, EmailPersistenceService>();
         builder.Services.AddTransient<IImapClientWrapper, ImapClientWrapper>();

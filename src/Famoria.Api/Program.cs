@@ -1,6 +1,7 @@
 using Famoria.Api.Extensions;
 using Famoria.Application;
 using Famoria.Infrastructure;
+using System.Reflection;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddAuth(builder.Configuration);
+builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(Program))!));
 
 var app = builder.Build();
 
