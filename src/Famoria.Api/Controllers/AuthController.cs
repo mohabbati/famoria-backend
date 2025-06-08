@@ -1,5 +1,5 @@
-using Famoria.Application.Services.Auth;
 using Famoria.Application.Interfaces;
+using Famoria.Application.Services.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Famoria.Api.Controllers;
 
 [ApiController]
-[Route("auth")]
+[Route("[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly GoogleSignInService _signIn;
@@ -22,21 +22,24 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("signin/google")]
-    public IActionResult SignIn()
+    public IResult SignInGoogle([FromQuery] string returnUrl)
     {
         var props = new AuthenticationProperties
         {
-            RedirectUri = "/auth/google/signin-callback",
+            RedirectUri = $"auth/signin/google/callback?returnUrl={returnUrl}",
             AllowRefresh = true,
             IsPersistent = true
         };
-        return Challenge(props, "GoogleSignIn");
+
+        return Results.Challenge(props, ["GoogleSignIn"]);
     }
 
-    [HttpGet("google/signin-callback")]
-    public async Task<IActionResult> SignInCallback(CancellationToken ct)
+    [HttpGet("signin/google/callback")]
+    public async Task<IActionResult> SignInGoogleCallback([FromQuery] string returnUrl, CancellationToken cancellationToken)
     {
-        var result = await HttpContext.AuthenticateAsync("GoogleTemp");
+
+        var result = await HttpContext.AuthenticateAsync("GoogleSignIn");
+
         if (!result.Succeeded || result.Principal is null)
         {
             return Content(
@@ -59,32 +62,35 @@ public class AuthController : ControllerBase
                 "text/html");
         }
 
-        var token = await _signIn.SignInAsync(result.Principal, ct);
+        var token = await _signIn.SignInAsync(result.Principal, cancellationToken);
         await HttpContext.SignOutAsync("GoogleTemp");
         var html = $"<script>window.opener.postMessage({{token:'{token}'}},'*');window.close();</script>";
+
         return Content(html, "text/html");
+        //return Results.Redirect(returnUrl);
     }
 
-    [Authorize]
+    //[Authorize]
     [HttpGet("link/gmail")]
-    public IActionResult LinkGmail()
+    public IActionResult LinkGmail([FromQuery] string returnUrl)
     {
-        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty;
+        //var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty;
         var props = new AuthenticationProperties
         {
-            RedirectUri = "/auth/google/link-callback",
+            RedirectUri = $"auth/link/gmail/callback?returnUrl={returnUrl}",
             AllowRefresh = true,
             IsPersistent = true
         };
-        props.SetParameter("login_hint", email);
+        //props.SetParameter("login_hint", email);
+        props.SetParameter("login_hint", "mohabbati@gmail.com");
         return Challenge(props, "GmailLink");
     }
 
-    [Authorize]
-    [HttpGet("/link-gmail")]
-    public async Task<IActionResult> LinkGmailCallback(CancellationToken ct)
+    //[Authorize]
+    [HttpGet("link/gmail/callback")]
+    public async Task<IActionResult> LinkGmailCallback([FromQuery] string returnUrl, CancellationToken cancellationToken)
     {
-        var result = await HttpContext.AuthenticateAsync("GoogleTemp");
+        var result = await HttpContext.AuthenticateAsync("GmailLink");
         if (!result.Succeeded || result.Principal is null)
         {
             return Content(
@@ -116,7 +122,7 @@ public class AuthController : ControllerBase
                 "text/html");
         }
 
-        await _gmailLink.LinkAsync(familyId, result.Principal, access, refresh, expires, ct);
+        await _gmailLink.LinkAsync(familyId, result.Principal, access, refresh, expires, cancellationToken);
         await HttpContext.SignOutAsync("GoogleTemp");
         var html = "<script>window.opener.postMessage({gmail:'linked'},'*');window.close();</script>";
         return Content(html, "text/html");

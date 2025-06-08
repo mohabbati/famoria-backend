@@ -1,3 +1,4 @@
+using Famoria.Api.Extensions;
 using Famoria.Application;
 using Famoria.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -30,67 +31,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        var secret = builder.Configuration["Auth:Jwt:Secret"]!;
-        options.TokenValidationParameters = new()
-        {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secret))
-        };
-    })
-    .AddCookie("GoogleTemp", options =>
-    {
-        options.Cookie.SameSite = SameSiteMode.None;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.HttpOnly = true;
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(5); // Use ExpireTimeSpan instead of Cookie.Expiration
-    })
-    .AddGoogle("GoogleSignIn", options =>
-    {
-        options.ClientId = builder.Configuration["Auth:Google:ClientId"]!;
-        options.ClientSecret = builder.Configuration["Auth:Google:ClientSecret"]!;
-        options.CallbackPath = "/auth/google/signin-callback";
-        options.Scope.Clear();
-        options.Scope.Add("openid");
-        options.Scope.Add("email");
-        options.Scope.Add("profile");
-        options.SaveTokens = true;
-        options.UsePkce = true;
-        options.SignInScheme = "GoogleTemp";
-        options.CorrelationCookie.SameSite = SameSiteMode.None;
-        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.CorrelationCookie.HttpOnly = true;
-        options.CorrelationCookie.Expiration = TimeSpan.FromMinutes(5);
-    })
-    .AddGoogle("GmailLink", options =>
-    {
-        options.ClientId = builder.Configuration["Auth:Google:ClientId"]!;
-        options.ClientSecret = builder.Configuration["Auth:Google:ClientSecret"]!;
-        options.CallbackPath = "/auth/google/link-callback";
-        options.Scope.Clear();
-        options.Scope.Add("openid");
-        options.Scope.Add("email");
-        options.Scope.Add("https://www.googleapis.com/auth/gmail.readonly");
-        options.AccessType = "offline";
-        options.SaveTokens = true;
-        options.UsePkce = true;
-        options.SignInScheme = "GoogleTemp";
-        options.CorrelationCookie.SameSite = SameSiteMode.None;
-        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.CorrelationCookie.HttpOnly = true;
-        options.CorrelationCookie.Expiration = TimeSpan.FromMinutes(5);
-    });
-
-builder.Services.AddDataProtection();
-builder.Services.AddAuthorization();
+builder.Services.AddAuth(builder.Configuration);
 
 var app = builder.Build();
 
