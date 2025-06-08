@@ -25,7 +25,7 @@ public class ConnectorService : IConnectorService
         {
             FamilyId = familyId,
             UserId = userId,
-            Provider = "Google",
+            Provider = provider,
             Source = FamilyItemSource.Email,
             UserEmail = email,
             AccessToken = _crypto.Encrypt(accessToken),

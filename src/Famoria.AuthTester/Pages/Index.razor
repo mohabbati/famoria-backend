@@ -30,6 +30,14 @@
   <button class="signin-button" @onclick="StartLinking" disabled="@_isLoading">
     Link Gmail
   </button>
+
+  <button class="signin-button" @onclick="StartMicrosoftSignIn" disabled="@_isLoading">
+    Sign in with Microsoft
+  </button>
+
+  <button class="signin-button" @onclick="StartOutlookLink" disabled="@_isLoading">
+    Link Outlook
+  </button>
 </div>
 
 @code {
@@ -89,6 +97,56 @@
       // Open popup with specific features
       var features = "width=500,height=600,resizable=yes,status=yes,scrollbars=yes,location=yes";
       _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "gmail-link", features);
+
+      await JS.InvokeVoidAsync("window.addEventListener", "message", _objRef, nameof(OnMessage));
+      await StartPopupCheck();
+    }
+    catch (Exception ex)
+    {
+      _error = $"Error: {ex.Message}";
+      _isLoading = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task StartMicrosoftSignIn()
+  {
+    try
+    {
+      _isLoading = true;
+      _error = null;
+      _token = null;
+      _email = null;
+      StateHasChanged();
+
+      var url = "https://localhost:7001/auth/signin/microsoft?returnUrl=https://localhost:19759";
+      var features = "width=500,height=600,resizable=yes,status=yes,scrollbars=yes,location=yes";
+      _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "microsoft-signin", features);
+
+      await JS.InvokeVoidAsync("window.addEventListener", "message", _objRef, nameof(OnMessage));
+      await StartPopupCheck();
+    }
+    catch (Exception ex)
+    {
+      _error = $"Error: {ex.Message}";
+      _isLoading = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task StartOutlookLink()
+  {
+    try
+    {
+      _isLoading = true;
+      _error = null;
+      _token = null;
+      _email = null;
+      StateHasChanged();
+
+      var url = "https://localhost:7001/auth/link/outlook?returnUrl=https://localhost:19759";
+      var features = "width=500,height=600,resizable=yes,status=yes,scrollbars=yes,location=yes";
+      _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "outlook-link", features);
 
       await JS.InvokeVoidAsync("window.addEventListener", "message", _objRef, nameof(OnMessage));
       await StartPopupCheck();
