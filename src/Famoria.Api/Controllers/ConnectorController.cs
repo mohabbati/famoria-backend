@@ -80,4 +80,60 @@ public class ConnectorController : CustomControllerBase
         var html = "<script>window.opener.postMessage({gmail:'linked'},'*');window.close();</script>";
         return Content(html, "text/html");
     }
+
+    [Authorize]
+    [HttpGet("link/outlook")]
+    public IActionResult LinkOutlook([FromQuery] string returnUrl)
+    {
+        var props = new AuthenticationProperties
+        {
+            RedirectUri = $"connector/link/outlook/callback?returnUrl={returnUrl}",
+            AllowRefresh = true,
+            IsPersistent = true
+        };
+        return Challenge(props, "OutlookLink");
+    }
+
+    [Authorize]
+    [HttpGet("link/outlook/callback")]
+    public async Task<IActionResult> LinkOutlookCallback([FromQuery] string returnUrl, CancellationToken cancellationToken)
+    {
+        var result = await HttpContext.AuthenticateAsync("OutlookLink");
+        if (!result.Succeeded || result.Principal is null)
+        {
+            return Content(
+                "<script>window.opener.postMessage({error:'Authentication failed'},'*');window.close();</script>",
+                "text/html");
+        }
+        var access = result.Properties.GetTokenValue("access_token")!;
+        var refresh = result.Properties.GetTokenValue("refresh_token");
+        if (string.IsNullOrEmpty(refresh))
+        {
+            return Content(
+                "<script>window.opener.postMessage({error:'No refresh token returned'},'*');window.close();</script>",
+                "text/html");
+        }
+
+        var linkedEmail = result.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        var currentEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        if (!string.Equals(linkedEmail, currentEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            return Content(
+                "<script>window.opener.postMessage({error:'Email mismatch'},'*');window.close();</script>",
+                "text/html");
+        }
+        var expires = int.TryParse(result.Properties.GetTokenValue("expires_in"), out var e) ? e : 0;
+        var familyId = User.FindFirst("family_id")?.Value;
+        if (string.IsNullOrEmpty(familyId))
+        {
+            return Content(
+                "<script>window.opener.postMessage({error:'No family selected'},'*');window.close();</script>",
+                "text/html");
+        }
+
+        await _connector.LinkAsync("Microsoft", familyId, result.Principal, access, refresh, expires, cancellationToken);
+        await HttpContext.SignOutAsync("MicrosoftTemp");
+        var html = "<script>window.opener.postMessage({outlook:'linked'},'*');window.close();</script>";
+        return Content(html, "text/html");
+    }
 }

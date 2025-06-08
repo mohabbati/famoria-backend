@@ -62,4 +62,36 @@ public class AuthController : CustomControllerBase
         return Content(html, "text/html");
         //return Results.Redirect(returnUrl);
     }
+
+    [HttpGet("signin/microsoft")]
+    public IResult SignInMicrosoft([FromQuery] string returnUrl)
+    {
+        var props = new AuthenticationProperties
+        {
+            RedirectUri = $"auth/signin/microsoft/callback?returnUrl={returnUrl}",
+            AllowRefresh = true,
+            IsPersistent = true
+        };
+
+        return Results.Challenge(props, ["MicrosoftSignIn"]);
+    }
+
+    [HttpGet("signin/microsoft/callback")]
+    public async Task<IActionResult> SignInMicrosoftCallback([FromQuery] string returnUrl, CancellationToken cancellationToken)
+    {
+        var result = await HttpContext.AuthenticateAsync("MicrosoftSignIn");
+
+        if (!result.Succeeded || result.Principal is null)
+        {
+            return Content(
+                "<script>window.opener.postMessage({error:'Authentication failed'},'*');window.close();</script>",
+                "text/html");
+        }
+
+        var token = await _signIn.SignInAsync("Microsoft", result.Principal, cancellationToken);
+        await HttpContext.SignOutAsync("MicrosoftTemp");
+        var html = $"<script>window.opener.postMessage({{token:'{token}'}},'*');window.close();</script>";
+
+        return Content(html, "text/html");
+    }
 }
