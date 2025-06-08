@@ -9,6 +9,11 @@ public static class ServiceAccountExtensions
 {
     public static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration configuration)
     {
+        var googleClientId = configuration["Auth:Google:ClientId"] ??
+            throw new NullReferenceException("Google client id not found.");
+        var googleClientSecret = configuration["Auth:Google:ClientSecret"] ??
+            throw new NullReferenceException("Google client secret not found.");
+
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -42,12 +47,12 @@ public static class ServiceAccountExtensions
             options.Cookie.SameSite = SameSiteMode.None;
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             options.Cookie.HttpOnly = true;
-            options.ExpireTimeSpan = TimeSpan.FromMinutes(5); // Use ExpireTimeSpan instead of Cookie.Expiration
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
         })
         .AddGoogle("GoogleSignIn", options =>
         {
-            options.ClientId = configuration["Auth:Google:ClientId"]!;
-            options.ClientSecret = configuration["Auth:Google:ClientSecret"]!;
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
             options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             options.CallbackPath = "/signin-google";
             options.Scope.Clear();
@@ -61,8 +66,8 @@ public static class ServiceAccountExtensions
         })
         .AddGoogle("GmailLink", options =>
         {
-            options.ClientId = configuration["Auth:Google:ClientId"]!;
-            options.ClientSecret = configuration["Auth:Google:ClientSecret"]!;
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
             options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             options.CallbackPath = "/gmail-link";
             options.Scope.Clear();

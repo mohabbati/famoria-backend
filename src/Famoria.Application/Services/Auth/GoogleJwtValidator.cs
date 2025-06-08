@@ -6,7 +6,7 @@ namespace Famoria.Application.Services.Auth;
 /// <summary>
 /// Default implementation of IGoogleJwtValidator that uses GoogleJsonWebSignature
 /// </summary>
-public class GoogleJwtValidator : IGoogleJwtValidator
+public class GoogleJwtValidator : IJwtValidator<GoogleJsonWebSignature.Payload>
 {
     /// <summary>
     /// Validates a Google ID token using GoogleJsonWebSignature

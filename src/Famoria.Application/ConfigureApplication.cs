@@ -3,6 +3,7 @@ using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
 using Famoria.Application.Services.Auth;
 using Famoria.Application.Services.Integrations;
+using Google.Apis.Auth;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Polly;
@@ -19,7 +20,7 @@ public static class ConfigureApplication
         // OAuth flows handled via AspNet.Security.OAuth.Google
         
         // Register the Google JWT validator
-        builder.Services.AddSingleton<IGoogleJwtValidator, GoogleJwtValidator>();
+        builder.Services.AddSingleton<IJwtValidator<GoogleJsonWebSignature.Payload>, GoogleJwtValidator>();
 
         // Register a real implementation for IUserIntegrationConnectionService here
         // builder.Services.AddSingleton<IUserIntegrationConnectionService, CosmosDbIntegrationConnectionService>();
