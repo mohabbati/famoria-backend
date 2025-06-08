@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Famoria.Api.Extensions;
 
-public static class ServiceAccountExtensions
+public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration configuration)
     {
