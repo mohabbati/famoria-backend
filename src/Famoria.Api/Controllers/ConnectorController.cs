@@ -1,24 +1,16 @@
-using Famoria.Application.Interfaces;
-using Famoria.Application.Services.Auth;
-
 using Google.Apis.Auth;
-
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 
 namespace Famoria.Api.Controllers;
 
-[ApiController]
-[Route("[controller]")]
-public class ConnectorController : ControllerBase
+public class ConnectorController : CustomControllerBase
 {
-    private readonly GmailLinkService _gmailLink;
+    private readonly IConnectorService _connector;
     private readonly IJwtValidator<GoogleJsonWebSignature.Payload> _validator;
 
-    public ConnectorController(GmailLinkService gmailLink, IJwtValidator<GoogleJsonWebSignature.Payload> validator)
+    public ConnectorController(IMediator mediator, IConnectorService connector, IJwtValidator<GoogleJsonWebSignature.Payload> validator) : base(mediator)
     {
-        _gmailLink = gmailLink;
+        _connector = connector;
         _validator = validator;
     }
 
@@ -83,7 +75,7 @@ public class ConnectorController : ControllerBase
                 "text/html");
         }
 
-        await _gmailLink.LinkAsync(familyId, result.Principal, access, refresh, expires, cancellationToken);
+        await _connector.LinkAsync("Google", familyId, result.Principal, access, refresh, expires, cancellationToken);
         await HttpContext.SignOutAsync("GoogleTemp");
         var html = "<script>window.opener.postMessage({gmail:'linked'},'*');window.close();</script>";
         return Content(html, "text/html");

@@ -1,27 +1,25 @@
 using System.Security.Claims;
-using CosmosKit;
-using Famoria.Domain.Entities;
 using Microsoft.Azure.Cosmos;
 
-namespace Famoria.Application.Services.Auth;
+namespace Famoria.Application.Services;
 
-public class GoogleSignInService
+public class SignInService : ISignInService
 {
     private readonly IRepository<FamoriaUser> _users;
-    private readonly JwtService _jwt;
+    private readonly IJwtService _jwt;
 
-    public GoogleSignInService(IRepository<FamoriaUser> users, JwtService jwt)
+    public SignInService(IRepository<FamoriaUser> users, IJwtService jwt)
     {
         _users = users;
         _jwt = jwt;
     }
 
-    public async Task<string> SignInAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
+    public async Task<string> SignInAsync(string provider, ClaimsPrincipal principal, CancellationToken cancellationToken = default)
     {
-        var sub = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ?? 
-                 principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? 
+        var sub = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ??
+                 principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ??
                  throw new InvalidOperationException("sub missing");
-        var email = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ?? 
+        var email = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ??
                    throw new InvalidOperationException("email missing");
         var name = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? email;
 
@@ -36,7 +34,7 @@ public class GoogleSignInService
 
         if (user is null)
         {
-            user = new FamoriaUser(sub, email, "Google", sub, []);
+            user = new FamoriaUser(sub, email, provider, sub, []);
             await _users.AddAsync(user, cancellationToken);
         }
 

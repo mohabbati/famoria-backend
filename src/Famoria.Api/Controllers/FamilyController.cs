@@ -1,18 +1,14 @@
 using Famoria.Application.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace Famoria.Api.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class FamilyController : ControllerBase
+public class FamilyController : CustomControllerBase
 {
-    private readonly FamilyCreationService _creator;
+    private readonly FamilyService _creator;
     private readonly JwtService _jwt;
 
-    public FamilyController(FamilyCreationService creator, JwtService jwt)
+    public FamilyController(IMediator mediator, FamilyService creator, JwtService jwt) : base(mediator)
     {
         _creator = creator;
         _jwt = jwt;

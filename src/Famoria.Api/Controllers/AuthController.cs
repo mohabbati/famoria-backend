@@ -1,21 +1,14 @@
-using Famoria.Application.Interfaces;
-using Famoria.Application.Services.Auth;
-
 using Google.Apis.Auth;
-
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Mvc;
 
 namespace Famoria.Api.Controllers;
 
-[ApiController]
-[Route("[controller]")]
-public class AuthController : ControllerBase
+public class AuthController : CustomControllerBase
 {
-    private readonly GoogleSignInService _signIn;
+    private readonly ISignInService _signIn;
     private readonly IJwtValidator<GoogleJsonWebSignature.Payload> _validator;
 
-    public AuthController(GoogleSignInService signIn, IJwtValidator<GoogleJsonWebSignature.Payload> validator)
+    public AuthController(IMediator mediator, ISignInService signIn, IJwtValidator<GoogleJsonWebSignature.Payload> validator) : base(mediator)
     {
         _signIn = signIn;
         _validator = validator;
@@ -62,7 +55,7 @@ public class AuthController : ControllerBase
                 "text/html");
         }
 
-        var token = await _signIn.SignInAsync(result.Principal, cancellationToken);
+        var token = await _signIn.SignInAsync("Google", result.Principal, cancellationToken);
         await HttpContext.SignOutAsync("GoogleTemp");
         var html = $"<script>window.opener.postMessage({{token:'{token}'}},'*');window.close();</script>";
 

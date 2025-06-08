@@ -1,8 +1,5 @@
 using System.Reflection;
-using Famoria.Application.Interfaces;
 using Famoria.Application.Services;
-using Famoria.Application.Services.Auth;
-using Famoria.Application.Services.Integrations;
 using Google.Apis.Auth;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,14 +11,21 @@ public static class ConfigureApplication
 {
     public static IHostApplicationBuilder AddApiServices(this IHostApplicationBuilder builder)
     {
-        builder.Services.Configure<GoogleAuthSettings>(builder.Configuration.GetSection("Google"));
         builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Auth:Jwt"));
 
-        // OAuth flows handled via AspNet.Security.OAuth.Google
-        
-        // Register the Google JWT validator
-        builder.Services.AddSingleton<IJwtValidator<GoogleJsonWebSignature.Payload>, GoogleJwtValidator>();
+        builder.Services.AddTransient<IJwtService, JwtService>();
+        builder.Services.AddTransient<IJwtValidator<GoogleJsonWebSignature.Payload>, GoogleJwtValidator>();
+        builder.AddCryptoService();
 
+        builder.Services.AddScoped<IConnectorService, ConnectorService>();
+        builder.Services.AddTransient<ISignInService, SignInService>();
+        builder.Services.AddTransient<FamilyService>();
+
+        return builder;
+    }
+
+    private static void AddCryptoService(this IHostApplicationBuilder builder)
+    {
         // Register a real implementation for IUserIntegrationConnectionService here
         // builder.Services.AddSingleton<IUserIntegrationConnectionService, CosmosDbIntegrationConnectionService>();
         // Retrieve the AES key from environment or configuration. In production this
@@ -32,14 +36,6 @@ public static class ConfigureApplication
             throw new InvalidOperationException("EncryptionKey not configured");
         var aesKey = Convert.FromBase64String(keyBase64);
         builder.Services.AddSingleton<IAesCryptoService>(new AesCryptoService(aesKey));
-
-        builder.Services.AddSingleton<IUserLinkedAccountService, UserLinkedAccountService>();
-        builder.Services.AddSingleton<JwtService>();
-        builder.Services.AddTransient<GoogleSignInService>();
-        builder.Services.AddTransient<GmailLinkService>();
-        builder.Services.AddTransient<FamilyCreationService>();
-
-        return builder;
     }
 
     /// <summary>

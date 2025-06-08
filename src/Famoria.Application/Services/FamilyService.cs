@@ -1,18 +1,16 @@
 using System.Security.Claims;
-using CosmosKit;
 using Famoria.Domain.Common;
-using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
 using Microsoft.Azure.Cosmos;
 
 namespace Famoria.Application.Services;
 
-public class FamilyCreationService
+public class FamilyService
 {
     private readonly IRepository<Family> _families;
     private readonly IRepository<FamoriaUser> _users;
 
-    public FamilyCreationService(IRepository<Family> families, IRepository<FamoriaUser> users)
+    public FamilyService(IRepository<Family> families, IRepository<FamoriaUser> users)
     {
         _families = families;
         _users = users;

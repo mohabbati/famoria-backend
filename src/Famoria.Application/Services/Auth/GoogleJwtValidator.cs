@@ -1,7 +1,6 @@
-using Famoria.Application.Interfaces;
 using Google.Apis.Auth;
 
-namespace Famoria.Application.Services.Auth;
+namespace Famoria.Application.Services;
 
 /// <summary>
 /// Default implementation of IGoogleJwtValidator that uses GoogleJsonWebSignature

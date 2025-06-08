@@ -1,29 +1,27 @@
-using Famoria.Application.Interfaces;
-using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
 using System.Security.Claims;
 
-namespace Famoria.Application.Services.Auth;
+namespace Famoria.Application.Services;
 
-public class GmailLinkService
+public class ConnectorService : IConnectorService
 {
-    private readonly IUserLinkedAccountService _accounts;
     private readonly IAesCryptoService _crypto;
+    private readonly IRepository<UserLinkedAccount> _repository;
 
-    public GmailLinkService(IUserLinkedAccountService accounts, IAesCryptoService crypto)
+    public ConnectorService(IAesCryptoService crypto, IRepository<UserLinkedAccount> repository)
     {
-        _accounts = accounts;
         _crypto = crypto;
+        _repository = repository;
     }
 
-    public async Task LinkAsync(string familyId, ClaimsPrincipal principal, string accessToken, string? refreshToken, int expiresInSeconds, CancellationToken cancellationToken = default)
+    public async Task LinkAsync(string provider, string familyId, ClaimsPrincipal principal, string accessToken, string? refreshToken, int expiresInSeconds, CancellationToken cancellationToken)
     {
         var userId = principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? 
                     principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ?? 
                     throw new InvalidOperationException("sub missing");
         var email = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ?? string.Empty;
 
-        var conn = new UserLinkedAccount
+        var linkedAccount = new UserLinkedAccount
         {
             FamilyId = familyId,
             UserId = userId,
@@ -35,6 +33,6 @@ public class GmailLinkService
             TokenExpiresAtUtc = DateTime.UtcNow.AddSeconds(expiresInSeconds),
             IsActive = true
         };
-        await _accounts.UpsertAsync(conn, cancellationToken);
+        await _repository.UpsertAsync(linkedAccount, cancellationToken);
     }
 }
