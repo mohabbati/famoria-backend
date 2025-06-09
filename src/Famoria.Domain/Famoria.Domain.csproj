@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="CosmosKit" Version="5.1.5" />
+    <PackageReference Include="CosmosKit" Version="5.1.6" />
   </ItemGroup>
 </Project>

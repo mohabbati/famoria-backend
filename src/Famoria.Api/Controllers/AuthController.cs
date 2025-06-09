@@ -1,26 +1,21 @@
-using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using System.IdentityModel.Tokens.Jwt;
-using Famoria.Application.Interfaces;
 
 namespace Famoria.Api.Controllers;
 
 public class AuthController : CustomControllerBase
 {
     private readonly ISignInService _signIn;
-    private readonly IJwtValidator<GoogleJsonWebSignature.Payload> _validator;
     private readonly IConfiguration _config;
     private readonly IJwtService _jwt;
 
     public AuthController(IMediator mediator,
                           ISignInService signIn,
-                          IJwtValidator<GoogleJsonWebSignature.Payload> validator,
                           IConfiguration config,
                           IJwtService jwt) : base(mediator)
     {
         _signIn = signIn;
-        _validator = validator;
         _config = config;
         _jwt = jwt;
     }
@@ -36,16 +31,14 @@ public class AuthController : CustomControllerBase
             IsPersistent = true
         };
 
-        return Results.Challenge(props, ["GoogleSignIn"]);
+        return Results.Challenge(props, ["Google"]);
     }
 
     [HttpGet("signin/google/callback")]
     public async Task<IActionResult> SignInGoogleCallback([FromQuery] string returnUrl, CancellationToken cancellationToken)
     {
-
         var origin = UrlHelper.GetOrigin(_config, returnUrl);
-
-        var result = await HttpContext.AuthenticateAsync("GoogleSignIn");
+        var result = await HttpContext.AuthenticateAsync("Google");
 
         if (!result.Succeeded || result.Principal is null)
         {
@@ -54,23 +47,16 @@ public class AuthController : CustomControllerBase
                 "text/html");
         }
 
-        var idToken = result.Properties.GetTokenValue("id_token");
-        if (string.IsNullOrEmpty(idToken))
+        var email = result.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        if (string.IsNullOrEmpty(email))
         {
             return Content(
-                $"<script>window.opener.postMessage({{error:'Missing ID token'}},'{origin}');window.close();</script>",
+                $"<script>window.opener.postMessage({{error:'Email not found in claims'}},'{origin}');window.close();</script>",
                 "text/html");
         }
-        var payload = await _validator.ValidateAsync(idToken);
-        if (!payload.EmailVerified)
-        {
-            return Content(
-                $"<script>window.opener.postMessage({{error:'Unverified email'}},'{origin}');window.close();</script>",
-                "text/html");
-        }
-
-        var token = await _signIn.SignInAsync("Google", result.Principal, cancellationToken);
-        await HttpContext.SignOutAsync("GoogleSignIn");
+        
+        var token = await _signIn.SignInAsync(result.Principal, cancellationToken);
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         Response.Cookies.Append(
             "ACCESS_TOKEN",
@@ -83,10 +69,9 @@ public class AuthController : CustomControllerBase
                 Expires = DateTimeOffset.UtcNow.AddHours(12)
             });
 
-        var html = $"<script>window.opener.postMessage({{email:'{payload.Email}',success:true}},'{origin}');window.close();</script>";
+        var html = $"<script>window.opener.postMessage({{email:'{email}',success:true}},'{origin}');window.close();</script>";
 
         return Content(html, "text/html");
-        //return Results.Redirect(returnUrl);
     }
 
     [HttpGet("signin/microsoft")]
@@ -100,7 +85,7 @@ public class AuthController : CustomControllerBase
             IsPersistent = true
         };
 
-        return Results.Challenge(props, ["MicrosoftSignIn"]);
+        return Results.Challenge(props, ["Microsoft"]);
     }
 
     [HttpGet("signin/microsoft/callback")]
@@ -108,7 +93,7 @@ public class AuthController : CustomControllerBase
     {
         var origin = UrlHelper.GetOrigin(_config, returnUrl);
 
-        var result = await HttpContext.AuthenticateAsync("MicrosoftSignIn");
+        var result = await HttpContext.AuthenticateAsync("Microsoft");
 
         if (!result.Succeeded || result.Principal is null)
         {
@@ -117,8 +102,8 @@ public class AuthController : CustomControllerBase
                 "text/html");
         }
 
-        var token = await _signIn.SignInAsync("Microsoft", result.Principal, cancellationToken);
-        await HttpContext.SignOutAsync("MicrosoftSignIn");
+        var token = await _signIn.SignInAsync(result.Principal, cancellationToken);
+        await HttpContext.SignOutAsync("Microsoft");
 
         Response.Cookies.Append(
             "ACCESS_TOKEN",

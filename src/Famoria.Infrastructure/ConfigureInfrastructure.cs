@@ -1,11 +1,12 @@
+using Azure.Identity;
 using CosmosKit;
 using Famoria.Domain.Converters;
 using Famoria.Domain.Entities;
-
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Famoria.Infrastructure;
 
@@ -21,17 +22,20 @@ public static class ConfigureInfrastructure
 
     public static IHostApplicationBuilder AddCosmosDb(this IHostApplicationBuilder builder)
     {
-        var databaseId = builder.Configuration["BlobContainerSettings:ConnectionString"]!;
+        var databaseId = builder.Configuration["CosmosDbSettings:DatabaseId"]!;
+
         builder.Services.AddCosmosKit(databaseId,
         [
             new EntityContainer(typeof(Family), "families", nameof(Family.Id)),
             new EntityContainer(typeof(FamilyItem), "family-items", nameof(FamilyItem.FamilyId)),
             new EntityContainer(typeof(FamilyTask), "family-tasks", nameof(FamilyTask.FamilyId)),
             new EntityContainer(typeof(FamoriaUser), "users", nameof(FamoriaUser.Id)),
+            new EntityContainer(typeof(UserLinkedAccount), "user-linked-account", nameof(UserLinkedAccount.FamilyId)),
         ], options =>
         {
             options.TypeInfoResolver = FamoriaJsonContext.Default;
             options.Converters.Add(new FamilyItemPayloadConverter());
+            options.Converters.Add(new JsonStringEnumConverter());
             options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         });
 
@@ -39,19 +43,13 @@ public static class ConfigureInfrastructure
             cosmosSettings =>
             {
                 cosmosSettings.DisableTracing = false;
-                //cosmosSettings.ConnectionString = settings.ConnectionString;
+                cosmosSettings.Credential = new DefaultAzureCredential();
             },
             clientOptions =>
             {
                 clientOptions.ApplicationName = AppDomain.CurrentDomain.FriendlyName;
                 clientOptions.CosmosClientTelemetryOptions = new() { DisableDistributedTracing = false };
-            });
-
-        builder.Services
-            .AddOptions<CosmosClientOptions>("cosmos")
-            .Configure<CosmosSerializer>((opts, serializer) =>
-            {
-                opts.Serializer = serializer;
+                clientOptions.Serializer = builder.Services.BuildServiceProvider().GetRequiredService<CosmosSerializer>();
             });
 
         return builder;
@@ -63,7 +61,7 @@ public static class ConfigureInfrastructure
             blobsSettings =>
             {
                 blobsSettings.DisableTracing = false;
-                blobsSettings.ConnectionString = builder.Configuration["BlobContainerSettings:ConnectionString"];
+                blobsSettings.Credential = new DefaultAzureCredential();
             });
 
         return builder;

@@ -53,29 +53,14 @@ public class FamilyService
         };
         await _families.AddAsync(family, cancellationToken);
 
-        FamoriaUser? user = null;
-        try
-        {
-            user = await _users.GetByAsync(new FamoriaUser(sub), cancellationToken);
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-        }
-
-        if (user is null)
-        {
-            user = new FamoriaUser(sub, email, "Google", sub, [familyId]);
-            await _users.AddAsync(user, cancellationToken);
-        }
-        else
-        {
-            var ids = user.FamilyIds.ToList();
-            if (!ids.Contains(familyId))
-                ids.Add(familyId);
-            var updated = new FamoriaUser(user.Id, user.Email, user.Provider, user.ExternalSub, ids);
-            await _users.AddAsync(updated, cancellationToken);
-        }
-
+        var user = await _users.GetByAsync(new FamoriaUser(sub), cancellationToken);
+        
+        var ids = user!.FamilyIds.ToList();
+        if (!ids.Contains(familyId))
+            ids.Add(familyId);
+        var updated = new FamoriaUser(user.Id, user.Email, user.Provider, user.ProviderSub, ids);
+        await _users.AddAsync(updated, cancellationToken);
+        
         return familyId;
     }
 }

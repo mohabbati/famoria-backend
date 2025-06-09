@@ -92,7 +92,7 @@
       StateHasChanged();
 
       // Do NOT generate or append a state parameter. Let the server handle it.
-      var url = "https://localhost:7001/auth/link/gmail?returnUrl=https://localhost:19759";
+      var url = "https://localhost:7001/connector/link/gmail?returnUrl=https://localhost:19759";
 
       // Open popup with specific features
       var features = "width=500,height=600,resizable=yes,status=yes,scrollbars=yes,location=yes";
@@ -144,7 +144,7 @@
       _email = null;
       StateHasChanged();
 
-      var url = "https://localhost:7001/auth/link/outlook?returnUrl=https://localhost:19759";
+      var url = "https://localhost:7001/connector/link/outlook?returnUrl=https://localhost:19759";
       var features = "width=500,height=600,resizable=yes,status=yes,scrollbars=yes,location=yes";
       _popup = await JS.InvokeAsync<IJSObjectReference>("open", url, "outlook-link", features);
 

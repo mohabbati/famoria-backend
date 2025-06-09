@@ -1,7 +1,5 @@
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
 
 namespace Famoria.Api.Controllers;
 

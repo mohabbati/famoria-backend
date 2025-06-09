@@ -55,7 +55,7 @@ public static class ServiceCollectionExtensions
             options.Cookie.HttpOnly = true;
             options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
         })
-        .AddGoogle("GoogleSignIn", options =>
+        .AddGoogle("Google", options =>
         {
             options.ClientId = googleClientId;
             options.ClientSecret = googleClientSecret;
@@ -88,7 +88,7 @@ public static class ServiceCollectionExtensions
             options.CorrelationCookie.HttpOnly = true;
             options.CorrelationCookie.Expiration = TimeSpan.FromMinutes(5);
         })
-        .AddMicrosoftAccount("MicrosoftSignIn", options =>
+        .AddMicrosoftAccount("Microsoft", options =>
         {
             options.ClientId = msClientId;
             options.ClientSecret = msClientSecret;

@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.Azure.Cosmos;
 
 namespace Famoria.Application.Services;
 
@@ -14,31 +13,32 @@ public class SignInService : ISignInService
         _jwt = jwt;
     }
 
-    public async Task<string> SignInAsync(string provider, ClaimsPrincipal principal, CancellationToken cancellationToken = default)
+    public async Task<string> SignInAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
     {
+        var iss = principal.Claims.Select(c => c.Issuer).FirstOrDefault()?.ToLowerInvariant() ??
+                 throw new InvalidOperationException("issuer missing");
         var sub = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ??
                  principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ??
-                 throw new InvalidOperationException("sub missing");
+                 throw new InvalidOperationException("subject missing");
         var email = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ??
                    throw new InvalidOperationException("email missing");
-        var name = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? email;
+        var name = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? string.Empty;
+        var firstName = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value ?? string.Empty;
+        var lastName = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value ?? string.Empty;
 
-        FamoriaUser? user = null;
-        try
-        {
-            user = await _users.GetByAsync(new FamoriaUser(sub), cancellationToken);
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-        }
+        var id = $"{iss}-{sub}";
 
+        var user = await _users.GetByAsync(new FamoriaUser(id), cancellationToken);
+        
         if (user is null)
         {
-            user = new FamoriaUser(sub, email, provider, sub, []);
+            user = new FamoriaUser(id, email, iss, sub, [])
+                { GivenName = name, FirstName = firstName, LastName = lastName };
             await _users.AddAsync(user, cancellationToken);
         }
 
         var token = _jwt.Sign(user.Id, user.Email, null);
-        return token;
+
+        return await Task.FromResult(token);
     }
 }
