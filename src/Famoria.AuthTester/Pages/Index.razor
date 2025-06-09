@@ -23,21 +23,25 @@
     }
   </div>
 
-  <button class="signin-button" @onclick="StartSignIn" disabled="@_isLoading">
-    Sign in with Google
-  </button>
+  <div class="button-row">
+    <button class="signin-button" @onclick="StartSignIn" disabled="@_isLoading">
+      Sign in with Google
+    </button>
 
-  <button class="signin-button" @onclick="StartLinking" disabled="@_isLoading">
-    Link Gmail
-  </button>
+    <button class="signin-button" @onclick="StartLinking" disabled="@_isLoading">
+      Link Gmail
+    </button>
+  </div>
 
-  <button class="signin-button" @onclick="StartMicrosoftSignIn" disabled="@_isLoading">
-    Sign in with Microsoft
-  </button>
+  <div class="button-row">
+    <button class="signin-button" @onclick="StartMicrosoftSignIn" disabled="@_isLoading">
+      Sign in with Microsoft
+    </button>
 
-  <button class="signin-button" @onclick="StartOutlookLink" disabled="@_isLoading">
-    Link Outlook
-  </button>
+    <button class="signin-button" @onclick="StartOutlookLink" disabled="@_isLoading">
+      Link Outlook
+    </button>
+  </div>
 </div>
 
 @code {
@@ -262,6 +266,13 @@
 
   .success {
     color: #28a745;
+  }
+
+  .button-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
   }
 
   .signin-button {
