@@ -18,11 +18,12 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Add CORS
+var frontendUrl = builder.Configuration["Auth:FrontendUrl"] ?? "https://localhost:19759";
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("https://localhost:19759")
+        policy.WithOrigins(frontendUrl)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();

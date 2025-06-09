@@ -197,11 +197,15 @@
       if (element.TryGetProperty("token", out var tokenElement))
       {
         _token = tokenElement.GetString();
-        if (element.TryGetProperty("email", out var emailElement))
-        {
-          _email = emailElement.GetString();
-        }
-        await JS.InvokeVoidAsync("sessionStorage.setItem", "token", _token);
+      }
+      else if (element.TryGetProperty("success", out var successElement) && successElement.GetBoolean())
+      {
+        _token = "stored in cookie";
+      }
+
+      if (element.TryGetProperty("email", out var emailElement))
+      {
+        _email = emailElement.GetString();
       }
       else if (element.TryGetProperty("error", out var errorElement))
       {
