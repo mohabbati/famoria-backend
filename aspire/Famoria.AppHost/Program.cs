@@ -56,8 +56,6 @@ var api = builder.AddProject<Projects.Famoria_Api>("famoria-api")
     .WaitFor(cosmosDb);
 var apiProxy = builder.AddProject<Projects.Famoria_Api_Proxy>("famoria-api-proxy")
     .WaitFor(api);
-builder.AddProject<Projects.Famoria_AuthTester>("famoria-authtester")
-    .WithReference(apiProxy);
 builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher-worker")
     .WithReference(cosmos)
     .WaitFor(cosmosDb)
