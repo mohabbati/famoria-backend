@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.JavaScript.Sdk">
-  <PropertyGroup>
-    <NodeRunCommand>npm run dev</NodeRunCommand>
-    <NodeBuildCommand>npm run build</NodeBuildCommand>
-    <WorkingDirectory>$(MSBuildThisFileDirectory)</WorkingDirectory>
-  </PropertyGroup>
-</Project>

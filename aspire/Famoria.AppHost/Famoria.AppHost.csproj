@@ -17,6 +17,7 @@
     <PackageReference Include="Aspire.Hosting.Azure.Storage" Version="9.3.0" />
     <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="9.5.1-beta.300" />
     <PackageReference Include="CommunityToolkit.Aspire.Hosting.Ollama" Version="9.5.0" />
+    <PackageReference Include="Aspire.Hosting.NodeJs" Version="9.3.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,7 +27,6 @@
     <ProjectReference Include="..\..\src\Famoria.Email.Filter.Worker\Famoria.Email.Filter.Worker.csproj" />
     <ProjectReference Include="..\..\src\Famoria.Summarizer.Worker\Famoria.Summarizer.Worker.csproj" />
     <ProjectReference Include="..\..\src\Famoria.Tasker.Worker\Famoria.Tasker.Worker.csproj" />
-    <ProjectReference Include="..\..\frontend\frontend.csproj" />
   </ItemGroup>
 
 </Project>
