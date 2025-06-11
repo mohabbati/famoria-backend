@@ -76,5 +76,7 @@ builder.AddProject<Projects.Famoria_Summarizer_Worker>("famoria-summarizer-worke
     .WaitFor(cosmosDb)
     .WithReference(blobContainer)
     .WaitFor(blobContainer);
+builder.AddProject<Projects.Famoria_TestClient>("famoria-testclient")
+    .WaitFor(apiProxy);
 
 builder.Build().Run();
