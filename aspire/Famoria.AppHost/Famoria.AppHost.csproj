@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\Famoria.Email.Filter.Worker\Famoria.Email.Filter.Worker.csproj" />
     <ProjectReference Include="..\..\src\Famoria.Summarizer.Worker\Famoria.Summarizer.Worker.csproj" />
     <ProjectReference Include="..\..\src\Famoria.Tasker.Worker\Famoria.Tasker.Worker.csproj" />
+    <ProjectReference Include="..\..\frontend\frontend.csproj" />
   </ItemGroup>
 
 </Project>

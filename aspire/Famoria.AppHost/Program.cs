@@ -77,4 +77,8 @@ builder.AddProject<Projects.Famoria_Summarizer_Worker>("famoria-summarizer-worke
     .WithReference(blobContainer)
     .WaitFor(blobContainer);
 
+builder.AddProject<Projects.Frontend>("frontend")
+    .WithReference(apiProxy)
+    .WithEndpoint(3000, 3000, "http");
+
 builder.Build().Run();

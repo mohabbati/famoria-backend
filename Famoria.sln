@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6336FC27-BD3
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{283845B3-EDBD-406E-A08B-EA1742DEF200}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "frontend", "frontend", "{1EAC8318-F956-4AA4-81B4-1A1555A64F38}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Famoria.Domain", "src\Famoria.Domain\Famoria.Domain.csproj", "{81DC24FE-F5B1-42EE-AD3B-712FF7CDCA67}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Famoria.Api", "src\Famoria.Api\Famoria.Api.csproj", "{24A3150D-778C-B2D4-18C0-7224EDA8CD70}"
@@ -27,6 +29,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Famoria.Tasker.Worker", "src\Famoria.Tasker.Worker\Famoria.Tasker.Worker.csproj", "{3A4E274C-067B-3790-DB26-CFEF88BCA5DA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Famoria.Summarizer.Worker", "src\Famoria.Summarizer.Worker\Famoria.Summarizer.Worker.csproj", "{195BF20F-5D93-8F2A-2529-9DE338453FAA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "frontend", "frontend\frontend.csproj", "{4939B2CA-4C68-4200-8BFB-856F78F75207}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Famoria.Unit.Tests", "test\Famoria.Unit.Tests\Famoria.Unit.Tests.csproj", "{65AF55EA-0F6A-4197-AECF-827CFBF7559A}"
 EndProject
@@ -108,8 +112,9 @@ Global
 		{195BF20F-5D93-8F2A-2529-9DE338453FAA} = {6336FC27-BD35-466A-94CE-7B3CDD3A449F}
 		{65AF55EA-0F6A-4197-AECF-827CFBF7559A} = {283845B3-EDBD-406E-A08B-EA1742DEF200}
 		{2F128020-B97D-45A0-957C-41719D105009} = {283845B3-EDBD-406E-A08B-EA1742DEF200}
-		{EDDB647D-716A-D7E9-3701-151F71B4D8AC} = {6336FC27-BD35-466A-94CE-7B3CDD3A449F}
-	EndGlobalSection
+                {EDDB647D-716A-D7E9-3701-151F71B4D8AC} = {6336FC27-BD35-466A-94CE-7B3CDD3A449F}
+                {4939B2CA-4C68-4200-8BFB-856F78F75207} = {1EAC8318-F956-4AA4-81B4-1A1555A64F38}
+        EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {81CC577E-42B2-4FDD-9381-3AACB2821ECF}
 	EndGlobalSection
