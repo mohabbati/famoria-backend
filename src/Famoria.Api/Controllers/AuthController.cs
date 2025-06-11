@@ -154,4 +154,16 @@ public class AuthController : CustomControllerBase
 
         return Ok(new { refreshed = true });
     }
+
+    [Authorize]
+    [HttpGet("bff/user")]
+    public IActionResult GetCurrentUser()
+    {
+        var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        var email = User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
+        var familyId = User.FindFirst("family_id")?.Value;
+        if (sub is null || email is null)
+            return Unauthorized();
+        return Ok(new { sub, email, familyId });
+    }
 }
