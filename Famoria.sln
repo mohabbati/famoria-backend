@@ -34,6 +34,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Famoria.Functional.Tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Famoria.Api.Proxy", "src\Famoria.Api.Proxy\Famoria.Api.Proxy.csproj", "{EDDB647D-716A-D7E9-3701-151F71B4D8AC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Famoria.TestClient", "src\Famoria.TestClient\Famoria.TestClient.csproj", "{95694D17-051B-40F3-B710-639650669FE2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,11 +89,15 @@ Global
 		{2F128020-B97D-45A0-957C-41719D105009}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2F128020-B97D-45A0-957C-41719D105009}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F128020-B97D-45A0-957C-41719D105009}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EDDB647D-716A-D7E9-3701-151F71B4D8AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EDDB647D-716A-D7E9-3701-151F71B4D8AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EDDB647D-716A-D7E9-3701-151F71B4D8AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EDDB647D-716A-D7E9-3701-151F71B4D8AC}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
+                {EDDB647D-716A-D7E9-3701-151F71B4D8AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {EDDB647D-716A-D7E9-3701-151F71B4D8AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {EDDB647D-716A-D7E9-3701-151F71B4D8AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {EDDB647D-716A-D7E9-3701-151F71B4D8AC}.Release|Any CPU.Build.0 = Release|Any CPU
+                {95694D17-051B-40F3-B710-639650669FE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {95694D17-051B-40F3-B710-639650669FE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {95694D17-051B-40F3-B710-639650669FE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {95694D17-051B-40F3-B710-639650669FE2}.Release|Any CPU.Build.0 = Release|Any CPU
+        EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
@@ -107,9 +113,10 @@ Global
 		{3A4E274C-067B-3790-DB26-CFEF88BCA5DA} = {6336FC27-BD35-466A-94CE-7B3CDD3A449F}
 		{195BF20F-5D93-8F2A-2529-9DE338453FAA} = {6336FC27-BD35-466A-94CE-7B3CDD3A449F}
 		{65AF55EA-0F6A-4197-AECF-827CFBF7559A} = {283845B3-EDBD-406E-A08B-EA1742DEF200}
-		{2F128020-B97D-45A0-957C-41719D105009} = {283845B3-EDBD-406E-A08B-EA1742DEF200}
-		{EDDB647D-716A-D7E9-3701-151F71B4D8AC} = {6336FC27-BD35-466A-94CE-7B3CDD3A449F}
-	EndGlobalSection
+                {2F128020-B97D-45A0-957C-41719D105009} = {283845B3-EDBD-406E-A08B-EA1742DEF200}
+                {EDDB647D-716A-D7E9-3701-151F71B4D8AC} = {6336FC27-BD35-466A-94CE-7B3CDD3A449F}
+                {95694D17-051B-40F3-B710-639650669FE2} = {6336FC27-BD35-466A-94CE-7B3CDD3A449F}
+        EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {81CC577E-42B2-4FDD-9381-3AACB2821ECF}
 	EndGlobalSection

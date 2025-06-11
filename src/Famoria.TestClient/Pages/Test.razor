@@ -1,0 +1,77 @@
+@page "/test"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<h1>Famoria Test UI</h1>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (!isLoggedIn)
+{
+    <p>Not logged in.</p>
+    <button @onclick="SignInGoogle">Sign in with Google</button>
+}
+else
+{
+    <p>Logged in as @user?.email</p>
+    <button @onclick="LinkGmail">Link Gmail Account</button>
+}
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <p>@message</p>
+}
+
+@code {
+    private UserInfo? user;
+    private bool loading = true;
+    private bool isLoggedIn;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+        await JS.InvokeVoidAsync("registerPopupHandler", DotNetObjectReference.Create(this));
+    }
+
+    private async Task LoadUser()
+    {
+        try
+        {
+            user = await Http.GetFromJsonAsync<UserInfo>("auth/bff/user");
+            isLoggedIn = true;
+        }
+        catch
+        {
+            user = null;
+            isLoggedIn = false;
+        }
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task SignInGoogle()
+    {
+        var returnUrl = Navigation.Uri;
+        await JS.InvokeVoidAsync("open", $"{Http.BaseAddress}auth/signin/google?returnUrl={Uri.EscapeDataString(returnUrl)}", "_blank", "width=500,height=600");
+    }
+
+    private async Task LinkGmail()
+    {
+        var returnUrl = Navigation.Uri;
+        await JS.InvokeVoidAsync("open", $"{Http.BaseAddress}connector/link/gmail?returnUrl={Uri.EscapeDataString(returnUrl)}", "_blank", "width=500,height=600");
+    }
+
+    [JSInvokable]
+    public async Task ReceivePopupMessage(string data)
+    {
+        message = data;
+        await LoadUser();
+    }
+
+    private record UserInfo(string sub, string email, string? familyId);
+}
