@@ -39,6 +39,6 @@ public class SignInService : ISignInService
 
         var token = _jwt.Sign(user.Id, user.Email, null);
 
-        return await Task.FromResult(token);
+        return token;
     }
 }
