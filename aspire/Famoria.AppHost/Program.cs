@@ -51,11 +51,9 @@ var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
 //       .WithEndpoint(8088, 80, "http");   // http://localhost:8088
 #endregion
 
-var api = builder.AddProject<Projects.Famoria_Api>("famoria-api")
+builder.AddProject<Projects.Famoria_Api>("famoria-api")
     .WithReference(cosmos)
     .WaitFor(cosmosDb);
-var apiProxy = builder.AddProject<Projects.Famoria_Api_Proxy>("famoria-api-proxy")
-    .WaitFor(api);
 builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher-worker")
     .WithReference(cosmos)
     .WaitFor(cosmosDb)
