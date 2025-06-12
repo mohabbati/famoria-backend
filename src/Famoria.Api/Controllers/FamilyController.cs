@@ -1,4 +1,5 @@
 using Famoria.Application.Services;
+using Famoria.Application.Interfaces;
 using System.Security.Claims;
 
 namespace Famoria.Api.Controllers;
@@ -6,9 +7,9 @@ namespace Famoria.Api.Controllers;
 public class FamilyController : CustomControllerBase
 {
     private readonly FamilyService _creator;
-    private readonly JwtService _jwt;
+    private readonly IJwtService _jwt;
 
-    public FamilyController(IMediator mediator, FamilyService creator, JwtService jwt) : base(mediator)
+    public FamilyController(IMediator mediator, FamilyService creator, IJwtService jwt) : base(mediator)
     {
         _creator = creator;
         _jwt = jwt;
