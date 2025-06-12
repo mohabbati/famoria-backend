@@ -10,7 +10,9 @@ public static class ConfigureApplication
 {
     public static IHostApplicationBuilder AddApiServices(this IHostApplicationBuilder builder)
     {
-        builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Auth:Jwt"));
+        builder.Services
+            .AddOptions<JwtSettings>()
+            .Bind(builder.Configuration.GetSection("Auth:Jwt"));
 
         builder.Services.AddTransient<IJwtService, JwtService>();
         builder.Services.AddTransient<IJwtValidator<GoogleJsonWebSignature.Payload>, GoogleJwtValidator>();
