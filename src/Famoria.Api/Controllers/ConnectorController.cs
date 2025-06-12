@@ -24,7 +24,7 @@ public class ConnectorController : CustomControllerBase
     [HttpGet("link/gmail")]
     public IActionResult LinkGmail([FromQuery] string returnUrl)
     {
-        //var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty;
+        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty;
         var safe = UrlHelper.GetReturnUrl(_config, returnUrl);
         var props = new AuthenticationProperties
         {
@@ -32,8 +32,7 @@ public class ConnectorController : CustomControllerBase
             AllowRefresh = true,
             IsPersistent = true
         };
-        //props.SetParameter("login_hint", email);
-        props.SetParameter("login_hint", "mohabbati@gmail.com");
+        props.SetParameter("login_hint", email);
         return Challenge(props, "GmailLink");
     }
 
