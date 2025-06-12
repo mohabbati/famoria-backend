@@ -1,5 +1,6 @@
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace Famoria.Api.Controllers;
 
@@ -83,7 +84,7 @@ public class ConnectorController : CustomControllerBase
         }
 
         await _connector.LinkAsync("Google", familyId, result.Principal, access, refresh, expires, cancellationToken);
-        await HttpContext.SignOutAsync("GoogleTemp");
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         var html = $"<script>window.opener.postMessage({{gmail:'linked'}},'{origin}');window.close();</script>";
         return Content(html, "text/html");
     }
@@ -141,7 +142,7 @@ public class ConnectorController : CustomControllerBase
         }
 
         await _connector.LinkAsync("Microsoft", familyId, result.Principal, access, refresh, expires, cancellationToken);
-        await HttpContext.SignOutAsync("MicrosoftTemp");
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         var html = $"<script>window.opener.postMessage({{outlook:'linked'}},'{origin}');window.close();</script>";
         return Content(html, "text/html");
     }
