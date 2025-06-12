@@ -9,10 +9,15 @@ namespace Famoria.Application.Services;
 public class JwtService : IJwtService
 {
     private readonly byte[] _secret;
+    private readonly string _issuer;
+    private readonly string _audience;
 
     public JwtService(IOptionsMonitor<JwtSettings> options)
     {
-        _secret = Encoding.UTF8.GetBytes(options.CurrentValue.Secret);
+        var settings = options.CurrentValue;
+        _secret = Encoding.UTF8.GetBytes(settings.Secret);
+        _issuer = settings.Issuer;
+        _audience = settings.Audience;
     }
 
     public string Sign(string subject, string email, string? familyId = null)
@@ -27,6 +32,8 @@ public class JwtService : IJwtService
         if (!string.IsNullOrEmpty(familyId))
             claims.Add(new Claim("family_id", familyId));
         var token = new JwtSecurityToken(
+            issuer: _issuer,
+            audience: _audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(12),
             signingCredentials: creds);
@@ -38,8 +45,10 @@ public class JwtService : IJwtService
         var handler = new JwtSecurityTokenHandler();
         var parameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidIssuer = _issuer,
+            ValidAudience = _audience,
             ValidateLifetime = true,
             IssuerSigningKey = new SymmetricSecurityKey(_secret),
             ValidateIssuerSigningKey = true
@@ -58,4 +67,6 @@ public class JwtService : IJwtService
 public class JwtSettings
 {
     public required string Secret { get; init; }
+    public required string Issuer { get; init; }
+    public required string Audience { get; init; }
 }
