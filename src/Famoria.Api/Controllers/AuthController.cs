@@ -103,7 +103,7 @@ public class AuthController : CustomControllerBase
         }
 
         var token = await _signIn.SignInAsync(result.Principal, cancellationToken);
-        await HttpContext.SignOutAsync("Microsoft");
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         Response.Cookies.Append(
             "ACCESS_TOKEN",
