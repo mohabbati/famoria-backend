@@ -34,7 +34,8 @@ public class SignInService : ISignInService
         {
             user = new FamoriaUser(id, email, iss, sub, [])
                 { GivenName = name, FirstName = firstName, LastName = lastName };
-            await _users.AddAsync(user, cancellationToken);
+            // Insert or update the user record in case it already exists
+            await _users.UpsertAsync(user, cancellationToken);
         }
 
         var token = _jwt.Sign(user.Id, user.Email, null);
