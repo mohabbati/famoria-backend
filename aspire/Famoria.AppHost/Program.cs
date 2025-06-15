@@ -4,14 +4,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(x =>
     {
+        x.WithGatewayPort(8081);
         x.WithLifetime(ContainerLifetime.Persistent);
-        x.WithUrlForEndpoint("https", u =>
-        {
-            x.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var annotations);
-            var httpsAnnotation = annotations!.First(z => z.Name == "https");
-            u.Url = $"{httpsAnnotation.UriScheme}://{httpsAnnotation.TargetHost}:{httpsAnnotation.TargetPort}/_explorer/index.html";
-            u.DisplayText = "Data Explorer UI";
-        });
+        x.WithUrl("https://localhost:8081/_explorer/index.html", "Data Explorer UI");
     })
     .PublishAsConnectionString();
 var cosmosDb = cosmos.AddCosmosDatabase("cosmos-db", "famoria");
@@ -51,7 +46,7 @@ var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
 //       .WithEndpoint(8088, 80, "http");   // http://localhost:8088
 #endregion
 
-builder.AddProject<Projects.Famoria_Api>("famoria-api")
+var api = builder.AddProject<Projects.Famoria_Api>("famoria-api")
     .WithReference(cosmos)
     .WaitFor(cosmosDb);
 builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher-worker")
@@ -74,5 +69,8 @@ builder.AddProject<Projects.Famoria_Summarizer_Worker>("famoria-summarizer-worke
     .WaitFor(cosmosDb)
     .WithReference(blobContainer)
     .WaitFor(blobContainer);
+
+builder.AddProject<Projects.Famoria_AuthTestWasm>("famoria-auth-test-wasm")
+    .WaitFor(api);
 
 builder.Build().Run();
