@@ -2,7 +2,7 @@ using Famoria.Application.Models.Dtos;
 
 namespace Famoria.Application.Interfaces;
 
-public interface ISignInService
+public interface IUserService
 {
     Task<string> SignInAsync(FamoriaUserDto userDto, CancellationToken cancellationToken = default);
 }

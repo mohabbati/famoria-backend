@@ -9,12 +9,12 @@ namespace Famoria.Api.Controllers;
 
 public class AuthController : CustomControllerBase
 {
-    private readonly ISignInService _signIn;
+    private readonly IUserService _signIn;
     private readonly IConfiguration _config;
     private readonly IJwtService _jwt;
 
     public AuthController(IMediator mediator,
-                          ISignInService signIn,
+                          IUserService signIn,
                           IConfiguration config,
                           IJwtService jwt) : base(mediator)
     {

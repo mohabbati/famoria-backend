@@ -2,12 +2,12 @@ using Famoria.Application.Models.Dtos;
 
 namespace Famoria.Application.Services;
 
-public class SignInService : ISignInService
+public class UserService : IUserService
 {
     private readonly IRepository<FamoriaUser> _users;
     private readonly IJwtService _jwt;
 
-    public SignInService(IRepository<FamoriaUser> users, IJwtService jwt)
+    public UserService(IRepository<FamoriaUser> users, IJwtService jwt)
     {
         _users = users;
         _jwt = jwt;
@@ -27,7 +27,7 @@ public class SignInService : ISignInService
             await _users.UpsertAsync(user, cancellationToken);
         }
 
-        var token = _jwt.Sign(user.Id, user.Email, null);
+        var token = _jwt.Sign(user.Id, user.Email, user.FamilyIds.FirstOrDefault());
 
         return token;
     }

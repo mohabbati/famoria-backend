@@ -19,7 +19,7 @@ public static class ConfigureApplication
         builder.AddCryptoService();
 
         builder.Services.AddScoped<IConnectorService, ConnectorService>();
-        builder.Services.AddTransient<ISignInService, SignInService>();
+        builder.Services.AddTransient<IUserService, UserService>();
         builder.Services.AddTransient<FamilyService>();
 
         return builder;
