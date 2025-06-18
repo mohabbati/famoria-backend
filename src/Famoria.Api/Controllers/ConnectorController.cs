@@ -1,6 +1,8 @@
+using Famoria.Api.Extensions;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 
 namespace Famoria.Api.Controllers;
 
@@ -24,7 +26,7 @@ public class ConnectorController : CustomControllerBase
     [HttpGet("link/gmail")]
     public IActionResult LinkGmail([FromQuery] string returnUrl)
     {
-        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty;
+        var email = User.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
         var safe = UrlHelper.GetReturnUrl(_config, returnUrl);
         var props = new AuthenticationProperties
         {
@@ -57,16 +59,8 @@ public class ConnectorController : CustomControllerBase
                 "text/html");
         }
 
-        //var payload = await _validator.ValidateAsync(idToken);
-        //if (!payload.EmailVerified)
-        //{
-        //    return Content(
-        //        "<script>window.opener.postMessage({error:'Unverified email'},'*');window.close();</script>",
-        //        "text/html");
-        //}
-
-        var linkedEmail = result.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-        var currentEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        var linkedEmail = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
+        var currentEmail = result.Principal.GetClaim("email");
         if (!string.Equals(linkedEmail, currentEmail, StringComparison.OrdinalIgnoreCase))
         {
             return Content(
@@ -83,7 +77,7 @@ public class ConnectorController : CustomControllerBase
         }
 
         await _connector.LinkAsync("Google", familyId, result.Principal, access, refresh, expires, cancellationToken);
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignOutAsync("GmailLink");
         var html = $"<script>window.opener.postMessage({{gmail:'linked'}},'{origin}');window.close();</script>";
         return Content(html, "text/html");
     }

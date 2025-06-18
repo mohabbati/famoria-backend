@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using Famoria.Application.Models.Dtos;
 
 namespace Famoria.Application.Services;
 
@@ -13,28 +13,17 @@ public class SignInService : ISignInService
         _jwt = jwt;
     }
 
-    public async Task<string> SignInAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
+    public async Task<string> SignInAsync(FamoriaUserDto userDto, CancellationToken cancellationToken = default)
     {
-        var iss = principal.Claims.Select(c => c.Issuer).FirstOrDefault()?.ToLowerInvariant() ??
-                 throw new InvalidOperationException("issuer missing");
-        var sub = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ??
-                 principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ??
-                 throw new InvalidOperationException("subject missing");
-        var email = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ??
-                   throw new InvalidOperationException("email missing");
-        var name = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? string.Empty;
-        var firstName = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value ?? string.Empty;
-        var lastName = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value ?? string.Empty;
-
-        var id = $"{iss}-{sub}";
+        var id = $"{userDto.Provider}-{userDto.ProviderSub}";
 
         var user = await _users.GetByAsync(new FamoriaUser(id), cancellationToken);
         
         if (user is null)
         {
-            user = new FamoriaUser(id, email, iss, sub, [])
-                { GivenName = name, FirstName = firstName, LastName = lastName };
-            // Insert or update the user record in case it already exists
+            user = new FamoriaUser(id, userDto.Email, userDto.Provider, userDto.ProviderSub, [])
+                { GivenName = userDto.GivenName, FirstName = userDto.LastName, LastName = userDto.LastName };
+
             await _users.UpsertAsync(user, cancellationToken);
         }
 

@@ -1,7 +1,6 @@
-using System.Security.Claims;
 using Famoria.Domain.Common;
 using Famoria.Domain.Enums;
-using Microsoft.Azure.Cosmos;
+using System.Security.Claims;
 
 namespace Famoria.Application.Services;
 

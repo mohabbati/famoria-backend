@@ -1,8 +1,8 @@
-using System.Security.Claims;
+using Famoria.Application.Models.Dtos;
 
 namespace Famoria.Application.Interfaces;
 
 public interface ISignInService
 {
-    Task<string> SignInAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
+    Task<string> SignInAsync(FamoriaUserDto userDto, CancellationToken cancellationToken = default);
 }

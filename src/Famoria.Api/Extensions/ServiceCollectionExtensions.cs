@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -34,16 +33,16 @@ public static class ServiceCollectionExtensions
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = configuration["Auth:Jwt:Issuer"]!,
-                ValidAudience = configuration["Auth:Jwt:Audience"]!,
+                ValidIssuer = configuration["Auth:Jwt:Issuer"],
+                ValidAudience = configuration["Auth:Jwt:Audience"],
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Auth:Jwt:Secret"]!))
             };
 
             options.Events = new JwtBearerEvents
             {
-                OnMessageReceived = context =>
+                OnMessageReceived = ctx =>
                 {
-                    context.Token = context.Request.Cookies["ACCESS_TOKEN"];
+                    ctx.Token = ctx.Request.Cookies["ACCESS_TOKEN"];
                     return Task.CompletedTask;
                 }
             };

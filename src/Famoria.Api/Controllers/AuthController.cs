@@ -1,6 +1,9 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using System.IdentityModel.Tokens.Jwt;
+using Famoria.Api.Extensions;
+using Famoria.Application.Models.Dtos;
 
 namespace Famoria.Api.Controllers;
 
@@ -47,15 +50,23 @@ public class AuthController : CustomControllerBase
                 "text/html");
         }
 
-        var email = result.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        var email = result.Principal.GetClaim(ClaimTypes.Email);
         if (string.IsNullOrEmpty(email))
         {
             return Content(
                 $"<script>window.opener.postMessage({{error:'Email not found in claims'}},'{origin}');window.close();</script>",
                 "text/html");
         }
-        
-        var token = await _signIn.SignInAsync(result.Principal, cancellationToken);
+
+        var userDto = CreateUserDto(result.Principal);
+
+        if (string.IsNullOrEmpty(userDto.Provider))
+            throw new InvalidOperationException("issuer missing");
+        if (string.IsNullOrEmpty(userDto.ProviderSub))
+            throw new InvalidOperationException("subject missing");
+
+        var token = await _signIn.SignInAsync(userDto, cancellationToken);
+
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         Response.Cookies.Append(
@@ -102,7 +113,14 @@ public class AuthController : CustomControllerBase
                 "text/html");
         }
 
-        var token = await _signIn.SignInAsync(result.Principal, cancellationToken);
+        var userDto = CreateUserDto(result.Principal);
+
+        if (string.IsNullOrEmpty(userDto.Provider))
+            throw new InvalidOperationException("issuer missing");
+        if (string.IsNullOrEmpty(userDto.ProviderSub))
+            throw new InvalidOperationException("subject missing");
+
+        var token = await _signIn.SignInAsync(userDto, cancellationToken);
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         Response.Cookies.Append(
@@ -159,11 +177,24 @@ public class AuthController : CustomControllerBase
     [HttpGet("bff/user")]
     public IActionResult GetCurrentUser()
     {
-        var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-        var email = User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
-        var familyId = User.FindFirst("family_id")?.Value;
-        if (sub is null || email is null)
-            return Unauthorized();
-        return Ok(new { sub, email, familyId });
+        var sub = User.GetClaim(ClaimTypes.NameIdentifier) ??
+            throw new InvalidOperationException("subject missing");
+        var email = User.GetClaim(ClaimTypes.Email) ??
+            throw new InvalidOperationException("email missing");
+        var familyId = User.GetClaim("family_id");
+
+        return string.IsNullOrEmpty(sub) || string.IsNullOrEmpty(email)
+            ? Unauthorized()
+            : Ok(new { sub, email, familyId });
+    }
+    private FamoriaUserDto CreateUserDto(ClaimsPrincipal user)
+    {
+        var name = user.GetClaim(ClaimTypes.Name) ?? string.Empty;
+        var firstName = user.GetClaim(ClaimTypes.GivenName) ?? string.Empty;
+        var lastName = user.GetClaim(ClaimTypes.Surname) ?? string.Empty;
+        var email = user.GetClaim(ClaimTypes.Email) ?? string.Empty;
+        var iss = user.GetClaim(ClaimTypes.Country) ?? string.Empty;
+        var sub = user.GetClaim(ClaimTypes.NameIdentifier) ?? string.Empty;
+        return new FamoriaUserDto(name, firstName, lastName, email, iss, sub, []);
     }
 }

@@ -6,6 +6,7 @@ public class FamoriaUser : AuditableEntity
     {
         // Parameterless constructor for Cosmos DB deserialization
     }
+
     public FamoriaUser(string id)
     {
         Id = id;
