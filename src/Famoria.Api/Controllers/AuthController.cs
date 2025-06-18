@@ -9,7 +9,7 @@ namespace Famoria.Api.Controllers;
 
 public class AuthController : CustomControllerBase
 {
-    private readonly IUserService _signIn;
+    private readonly IUserService _userService;
     private readonly IConfiguration _config;
     private readonly IJwtService _jwt;
 
@@ -18,7 +18,7 @@ public class AuthController : CustomControllerBase
                           IConfiguration config,
                           IJwtService jwt) : base(mediator)
     {
-        _signIn = signIn;
+        _userService = signIn;
         _config = config;
         _jwt = jwt;
     }
@@ -60,14 +60,14 @@ public class AuthController : CustomControllerBase
 
         var userDto = CreateUserDto(result.Principal);
 
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
         if (string.IsNullOrEmpty(userDto.Provider))
             throw new InvalidOperationException("issuer missing");
         if (string.IsNullOrEmpty(userDto.ProviderSub))
             throw new InvalidOperationException("subject missing");
 
-        var token = await _signIn.SignInAsync(userDto, cancellationToken);
-
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        var token = await _userService.SignInAsync(userDto, cancellationToken);
 
         Response.Cookies.Append(
             "ACCESS_TOKEN",
@@ -115,13 +115,14 @@ public class AuthController : CustomControllerBase
 
         var userDto = CreateUserDto(result.Principal);
 
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
         if (string.IsNullOrEmpty(userDto.Provider))
             throw new InvalidOperationException("issuer missing");
         if (string.IsNullOrEmpty(userDto.ProviderSub))
             throw new InvalidOperationException("subject missing");
 
-        var token = await _signIn.SignInAsync(userDto, cancellationToken);
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        var token = await _userService.SignInAsync(userDto, cancellationToken);
 
         Response.Cookies.Append(
             "ACCESS_TOKEN",
