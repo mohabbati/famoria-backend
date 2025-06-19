@@ -188,13 +188,14 @@ public class AuthController : CustomControllerBase
             ? Unauthorized()
             : Ok(new { sub, email, familyId });
     }
+
     private FamoriaUserDto CreateUserDto(ClaimsPrincipal user)
     {
         var name = user.GetClaim(ClaimTypes.Name) ?? string.Empty;
         var firstName = user.GetClaim(ClaimTypes.GivenName) ?? string.Empty;
         var lastName = user.GetClaim(ClaimTypes.Surname) ?? string.Empty;
         var email = user.GetClaim(ClaimTypes.Email) ?? string.Empty;
-        var iss = user.GetClaim(ClaimTypes.Country) ?? string.Empty;
+        var iss = user.Claims.Select(c => c.Issuer).FirstOrDefault()?.ToLowerInvariant() ?? string.Empty;
         var sub = user.GetClaim(ClaimTypes.NameIdentifier) ?? string.Empty;
         return new FamoriaUserDto(name, firstName, lastName, email, iss, sub, []);
     }
