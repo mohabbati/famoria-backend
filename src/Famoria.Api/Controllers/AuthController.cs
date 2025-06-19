@@ -30,7 +30,6 @@ public class AuthController : CustomControllerBase
         var props = new AuthenticationProperties
         {
             RedirectUri = $"auth/signin/google/callback?returnUrl={safe}",
-            AllowRefresh = true,
             IsPersistent = true
         };
 
@@ -92,7 +91,6 @@ public class AuthController : CustomControllerBase
         var props = new AuthenticationProperties
         {
             RedirectUri = $"auth/signin/microsoft/callback?returnUrl={safe}",
-            AllowRefresh = true,
             IsPersistent = true
         };
 
@@ -147,31 +145,6 @@ public class AuthController : CustomControllerBase
     {
         Response.Cookies.Delete("ACCESS_TOKEN");
         return Ok(new { signedOut = true });
-    }
-
-    [Authorize]
-    [HttpPost("refresh")]
-    public IActionResult RefreshToken()
-    {
-        var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-        var email = User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
-        var familyId = User.FindFirst("family_id")?.Value;
-        if (sub is null || email is null)
-            return Unauthorized();
-
-        var token = _jwt.Sign(sub, email, familyId);
-        Response.Cookies.Append(
-            "ACCESS_TOKEN",
-            token,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                Expires = DateTimeOffset.UtcNow.AddHours(12)
-            });
-
-        return Ok(new { refreshed = true });
     }
 
     [Authorize]
