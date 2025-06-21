@@ -1,3 +1,4 @@
+using Famoria.Application.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -63,16 +64,4 @@ public class JwtService : IJwtService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-}
-
-public class JwtSettings
-{
-    /// <summary>Secret used to sign tokens (minimum 16 characters).</summary>
-    public required string Secret { get; init; }
-    /// <summary>Token issuer (iss claim).</summary>
-    public required string Issuer { get; init; }
-    /// <summary>Token audience (aud claim).</summary>
-    public required string Audience { get; init; }
-    /// <summary>Lifetime of the token.</summary>
-    public TimeSpan TokenLifetime { get; init; }
 }

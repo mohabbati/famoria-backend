@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Famoria.Api.Extensions;
-using Famoria.Application.Models.Dtos;
 
 namespace Famoria.Api.Controllers;
 
@@ -67,16 +65,7 @@ public class AuthController : CustomControllerBase
 
         var token = await _userService.SignInAsync(userDto, cancellationToken);
 
-        Response.Cookies.Append(
-            "ACCESS_TOKEN",
-            token,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                Expires = DateTimeOffset.UtcNow.AddHours(12)
-            });
+        Response.AppendAccessToken(token);
 
         var html = $"<script>window.opener.postMessage({{email:'{email}',success:true}},'{origin}');window.close();</script>";
 
@@ -121,16 +110,7 @@ public class AuthController : CustomControllerBase
 
         var token = await _userService.SignInAsync(userDto, cancellationToken);
 
-        Response.Cookies.Append(
-            "ACCESS_TOKEN",
-            token,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                Expires = DateTimeOffset.UtcNow.AddHours(12)
-            });
+        Response.AppendAccessToken(token);
 
         var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
         var html = $"<script>window.opener.postMessage({{email:'{email}',success:true}},'{origin}');window.close();</script>";

@@ -7,4 +7,10 @@ public static class ClaimsPrincipalExtensions
     public static string? GetClaim(this ClaimsPrincipal user, string type) =>
         user.Claims.FirstOrDefault(c =>
             string.Equals(c.Type, type, StringComparison.OrdinalIgnoreCase))?.Value;
+
+    public static string? FamoriaUserId(this ClaimsPrincipal user) =>
+        user.GetClaim(ClaimTypes.NameIdentifier);
+
+    public static string? Email(this ClaimsPrincipal user) =>
+        user.GetClaim(ClaimTypes.Email);
 }

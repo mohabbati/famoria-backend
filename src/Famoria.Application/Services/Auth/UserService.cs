@@ -1,5 +1,3 @@
-using Famoria.Application.Models.Dtos;
-
 namespace Famoria.Application.Services;
 
 public class UserService : IUserService
@@ -30,5 +28,16 @@ public class UserService : IUserService
         var token = _jwtService.Sign(user.Id, user.Email, user.FamilyIds.FirstOrDefault());
 
         return token;
+    }
+
+    public async Task AddFamilyToUserAsync(string userId, string familyId, CancellationToken cancellationToken = default)
+    {
+        var foundUsers = await _users.GetAsync(x => x.Id == userId, cancellationToken)
+            ?? throw new InvalidOperationException("User not found.");
+
+        var user = foundUsers.Single();
+        user.FamilyIds.Add(familyId);
+
+        await _users.UpdateAsync(user, cancellationToken);
     }
 }

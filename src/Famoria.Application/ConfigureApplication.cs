@@ -1,5 +1,5 @@
+using Famoria.Application.Models;
 using Famoria.Application.Services;
-using Google.Apis.Auth;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Polly;
@@ -15,7 +15,6 @@ public static class ConfigureApplication
             .Bind(builder.Configuration.GetSection("Auth:Jwt"));
 
         builder.Services.AddTransient<IJwtService, JwtService>();
-        builder.Services.AddTransient<IJwtValidator<GoogleJsonWebSignature.Payload>, GoogleJwtValidator>();
         builder.AddCryptoService();
 
         builder.Services.AddScoped<IConnectorService, ConnectorService>();

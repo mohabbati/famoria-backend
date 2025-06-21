@@ -1,36 +1,35 @@
-using Famoria.Application.Services;
-using Famoria.Application.Interfaces;
-using System.Security.Claims;
-
 namespace Famoria.Api.Controllers;
 
 public class FamilyController : CustomControllerBase
 {
-    private readonly FamilyService _creator;
-    private readonly IJwtService _jwt;
+    private readonly IFamilyService _familyService;
+    private readonly IUserService _userService;
+    private readonly IJwtService _jwtService;
 
-    public FamilyController(IMediator mediator, FamilyService creator, IJwtService jwt) : base(mediator)
+    public FamilyController(IMediator mediator, IFamilyService creator, IUserService userService, IJwtService jwtService) : base(mediator)
     {
-        _creator = creator;
-        _jwt = jwt;
+        _familyService = creator;
+        _userService = userService;
+        _jwtService = jwtService;
     }
-
-    public record ChildInput(string Name, List<string>? Tags);
-    public record CreateFamilyRequest(string DisplayName, List<ChildInput>? Children);
 
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateFamilyRequest request, CancellationToken ct)
+    public async Task<IActionResult> Create([FromBody] FamilyDto request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.DisplayName))
-            return BadRequest("DisplayName required");
+            return BadRequest("DisplayName required.");
 
-        var children = request.Children?.Select(c => (c.Name, (IEnumerable<string>?)c.Tags));
-        var familyId = await _creator.CreateAsync(User, request.DisplayName, children, ct);
+        var famoriaUserId = User.FamoriaUserId()!;
 
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value!;
-        var email = User.FindFirst(ClaimTypes.Email)?.Value!;
-        var token = _jwt.Sign(sub, email, familyId);
-        return Ok(new { token, familyId });
+        var familyId = await _familyService.CreateAsync(famoriaUserId, request, cancellationToken);
+
+        await _userService.AddFamilyToUserAsync(famoriaUserId, familyId, cancellationToken);
+
+        var newToken = _jwtService.Sign(famoriaUserId, User.Email()!, familyId);
+
+        Response.AppendAccessToken(newToken);
+
+        return Ok(familyId);
     }
 }
