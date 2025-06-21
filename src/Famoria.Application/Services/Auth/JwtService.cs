@@ -11,62 +11,68 @@ public class JwtService : IJwtService
     private readonly byte[] _secret;
     private readonly string _issuer;
     private readonly string _audience;
+    private readonly TimeSpan _tokenLifetime;
 
     public JwtService(IOptionsMonitor<JwtSettings> options)
     {
         var settings = options.CurrentValue;
+        if (string.IsNullOrWhiteSpace(settings.Secret) || settings.Secret.Length < 16)
+            throw new ArgumentException("JWT Secret must be at least 16 characters.");
+
         _secret = Encoding.UTF8.GetBytes(settings.Secret);
         _issuer = settings.Issuer;
         _audience = settings.Audience;
+        _tokenLifetime = settings.TokenLifetime ?? TimeSpan.FromHours(12);
     }
 
-    public string Sign(string subject, string email, string? familyId = null)
+    public string Sign(
+        string subject,
+        string email,
+        string? familyId = null,
+        IEnumerable<string>? roles = null)
     {
-        var handler = new JwtSecurityTokenHandler();
-        var creds = new SigningCredentials(new SymmetricSecurityKey(_secret), SecurityAlgorithms.HmacSha256);
+        var now = DateTime.UtcNow;
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, subject),
-            new Claim(JwtRegisteredClaimNames.Email, email)
+            new Claim(ClaimTypes.NameIdentifier, subject),
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, new DateTimeOffset(now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
+
         if (!string.IsNullOrEmpty(familyId))
             claims.Add(new Claim("family_id", familyId));
+
+        if (roles != null)
+        {
+            foreach (var role in roles)
+                claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        var key = new SymmetricSecurityKey(_secret);
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
             issuer: _issuer,
             audience: _audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(12),
-            signingCredentials: creds);
-        return handler.WriteToken(token);
-    }
+            notBefore: now,
+            expires: now.Add(_tokenLifetime),
+            signingCredentials: creds
+        );
 
-    public ClaimsPrincipal? Validate(string token)
-    {
-        var handler = new JwtSecurityTokenHandler();
-        var parameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidIssuer = _issuer,
-            ValidAudience = _audience,
-            ValidateLifetime = true,
-            IssuerSigningKey = new SymmetricSecurityKey(_secret),
-            ValidateIssuerSigningKey = true
-        };
-        try
-        {
-            return handler.ValidateToken(token, parameters, out _);
-        }
-        catch
-        {
-            return null;
-        }
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
 
 public class JwtSettings
 {
+    /// <summary>Secret used to sign tokens (minimum 16 characters).</summary>
     public required string Secret { get; init; }
+    /// <summary>Token issuer (iss claim).</summary>
     public required string Issuer { get; init; }
+    /// <summary>Token audience (aud claim).</summary>
     public required string Audience { get; init; }
+    /// <summary>Lifetime of the token; defaults to 12 hours if not set.</summary>
+    public TimeSpan? TokenLifetime { get; init; }
 }

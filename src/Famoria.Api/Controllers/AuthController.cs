@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -133,7 +132,7 @@ public class AuthController : CustomControllerBase
                 Expires = DateTimeOffset.UtcNow.AddHours(12)
             });
 
-        var email = result.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
         var html = $"<script>window.opener.postMessage({{email:'{email}',success:true}},'{origin}');window.close();</script>";
 
         return Content(html, "text/html");

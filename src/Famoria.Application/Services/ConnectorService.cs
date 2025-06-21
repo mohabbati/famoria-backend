@@ -14,7 +14,7 @@ public class ConnectorService : IConnectorService
         _repository = repository;
     }
 
-    public async Task LinkAsync(string provider, string familyId, ClaimsPrincipal principal, string accessToken, string? refreshToken, int expiresInSeconds, CancellationToken cancellationToken)
+    public async Task LinkAsync(string provider, string familyId, ClaimsPrincipal principal, string accessToken, string? refreshToken, DateTime expiresAt, CancellationToken cancellationToken)
     {
         var userId = principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? 
                     principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ?? 
@@ -30,7 +30,7 @@ public class ConnectorService : IConnectorService
             UserEmail = email,
             AccessToken = _crypto.Encrypt(accessToken),
             RefreshToken = refreshToken is null ? null : _crypto.Encrypt(refreshToken),
-            TokenExpiresAtUtc = DateTime.UtcNow.AddSeconds(expiresInSeconds),
+            TokenExpiresAtUtc = expiresAt,
             IsActive = true
         };
         await _repository.UpsertAsync(linkedAccount, cancellationToken);
