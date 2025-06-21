@@ -55,10 +55,10 @@ public class ConnectorController : CustomControllerBase
                 "text/html");
         }
 
-        var linkedEmail = result.Principal.GetClaim(ClaimTypes.Email);
+        var linkedEmail = result.Principal.Email();
         var expiresAtRaw = result.Properties.GetTokenValue("expires_at")!;
         var expiresAt = DateTimeOffset.Parse(expiresAtRaw).UtcDateTime;
-        var familyId = User.FindFirst("family_id")?.Value;
+        var familyId = User.FamilyId();
         if (string.IsNullOrEmpty(familyId))
         {
             return Content(
@@ -66,9 +66,12 @@ public class ConnectorController : CustomControllerBase
                 "text/html");
         }
 
-        await _connector.LinkAsync("Google", familyId, result.Principal, accessToken, refreshToken, expiresAt, cancellationToken);
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await _connector.LinkAsync("Google", familyId, result.Principal, accessToken, refreshToken, expiresAt, cancellationToken);
+
         var html = $"<script>window.opener.postMessage({{gmail:'linked'}},'{origin}');window.close();</script>";
+
         return Content(html, "text/html");
     }
 
@@ -107,10 +110,10 @@ public class ConnectorController : CustomControllerBase
                 "text/html");
         }
 
-        var linkedEmail = result.Principal.GetClaim(ClaimTypes.Email);
+        var linkedEmail = result.Principal.Email();
         var expiresAtRaw = result.Properties.GetTokenValue("expires_at")!;
         var expiresAt = DateTimeOffset.Parse(expiresAtRaw).UtcDateTime;
-        var familyId = User.FindFirst("family_id")?.Value;
+        var familyId = User.FamilyId();
         if (string.IsNullOrEmpty(familyId))
         {
             return Content(
@@ -118,9 +121,12 @@ public class ConnectorController : CustomControllerBase
                 "text/html");
         }
 
-        await _connector.LinkAsync("Microsoft", familyId, result.Principal, accessToken, refreshToken, expiresAt, cancellationToken);
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await _connector.LinkAsync("Microsoft", familyId, result.Principal, accessToken, refreshToken, expiresAt, cancellationToken);
+
         var html = $"<script>window.opener.postMessage({{outlook:'linked'}},'{safeReturnUrl}');window.close();</script>";
+
         return Content(html, "text/html");
     }
 }

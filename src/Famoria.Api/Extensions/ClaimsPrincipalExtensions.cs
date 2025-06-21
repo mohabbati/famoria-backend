@@ -13,4 +13,7 @@ public static class ClaimsPrincipalExtensions
 
     public static string? Email(this ClaimsPrincipal user) =>
         user.GetClaim(ClaimTypes.Email);
+
+    public static string? FamilyId(this ClaimsPrincipal user) =>
+        user.GetClaim("family_id");
 }
