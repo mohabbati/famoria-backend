@@ -5,12 +5,12 @@ namespace Famoria.Application.Services;
 public class UserService : IUserService
 {
     private readonly IRepository<FamoriaUser> _users;
-    private readonly IJwtService _jwt;
+    private readonly IJwtService _jwtService;
 
     public UserService(IRepository<FamoriaUser> users, IJwtService jwt)
     {
         _users = users;
-        _jwt = jwt;
+        _jwtService = jwt;
     }
 
     public async Task<string> SignInAsync(FamoriaUserDto userDto, CancellationToken cancellationToken = default)
@@ -27,7 +27,7 @@ public class UserService : IUserService
             await _users.UpsertAsync(user, cancellationToken);
         }
 
-        var token = _jwt.Sign(user.Id, user.Email, user.FamilyIds.FirstOrDefault());
+        var token = _jwtService.Sign(user.Id, user.Email, user.FamilyIds.FirstOrDefault());
 
         return token;
     }

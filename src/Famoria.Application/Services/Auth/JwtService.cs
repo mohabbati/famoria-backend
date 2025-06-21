@@ -22,7 +22,7 @@ public class JwtService : IJwtService
         _secret = Encoding.UTF8.GetBytes(settings.Secret);
         _issuer = settings.Issuer;
         _audience = settings.Audience;
-        _tokenLifetime = settings.TokenLifetime ?? TimeSpan.FromHours(12);
+        _tokenLifetime = settings.TokenLifetime;
     }
 
     public string Sign(
@@ -34,20 +34,20 @@ public class JwtService : IJwtService
         var now = DateTime.UtcNow;
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, subject),
-            new Claim(ClaimTypes.NameIdentifier, subject),
-            new Claim(JwtRegisteredClaimNames.Email, email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat, new DateTimeOffset(now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+            new(JwtRegisteredClaimNames.Sub, subject),
+            new(ClaimTypes.NameIdentifier, subject),
+            new(JwtRegisteredClaimNames.Email, email),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Iat, new DateTimeOffset(now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
 
         if (!string.IsNullOrEmpty(familyId))
-            claims.Add(new Claim("family_id", familyId));
+            claims.Add(new("family_id", familyId));
 
         if (roles != null)
         {
             foreach (var role in roles)
-                claims.Add(new Claim(ClaimTypes.Role, role));
+                claims.Add(new(ClaimTypes.Role, role));
         }
 
         var key = new SymmetricSecurityKey(_secret);
@@ -73,6 +73,6 @@ public class JwtSettings
     public required string Issuer { get; init; }
     /// <summary>Token audience (aud claim).</summary>
     public required string Audience { get; init; }
-    /// <summary>Lifetime of the token; defaults to 12 hours if not set.</summary>
-    public TimeSpan? TokenLifetime { get; init; }
+    /// <summary>Lifetime of the token.</summary>
+    public TimeSpan TokenLifetime { get; init; }
 }
