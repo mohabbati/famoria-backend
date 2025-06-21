@@ -15,11 +15,10 @@ public static class ConfigureApplication
             .Bind(builder.Configuration.GetSection("Auth:Jwt"));
 
         builder.Services.AddTransient<IJwtService, JwtService>();
-        builder.AddCryptoService();
-
-        builder.Services.AddScoped<IConnectorService, ConnectorService>();
         builder.Services.AddTransient<IUserService, UserService>();
-        builder.Services.AddTransient<FamilyService>();
+        builder.Services.AddTransient<IFamilyService, FamilyService>();
+        builder.Services.AddTransient<IConnectorService, ConnectorService>();
+        builder.AddCryptoService();
 
         return builder;
     }

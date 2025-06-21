@@ -1,7 +1,9 @@
+using System.Text;
+
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Microsoft.OpenApi.Models;
 
 namespace Famoria.Api.Extensions;
 
@@ -122,6 +124,73 @@ public static class ServiceCollectionExtensions
 
         services.AddDataProtection();
         services.AddAuthorization();
+
+        return services;
+    }
+
+    public static IServiceCollection AddCustomCors(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Add CORS
+        var frontendUrl = configuration["Auth:FrontendUrl"] ?? "https://localhost:19759";
+        services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.WithOrigins(frontendUrl)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader()
+                      .AllowCredentials();
+            });
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddCustomSwagger(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Configure Swagger with authentication
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo { Title = "Famoria API", Version = "v1" });
+
+            var apiBaseUrl = configuration["Auth:ApiUrl"] ?? "https://localhost:7001";
+            // Define OAuth2 Google authentication scheme
+            options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.OAuth2,
+                Description = "OAuth2 Authentication",
+                Flows = new OpenApiOAuthFlows
+                {
+                    Implicit = new OpenApiOAuthFlow
+                    {
+                        AuthorizationUrl = new Uri($"{apiBaseUrl}/auth/signin/google?returnUrl={apiBaseUrl}/swagger/oauth2-redirect.html"),
+                        Scopes = new Dictionary<string, string>
+                {
+                    { "openid", "OpenID Connect" },
+                    { "email", "Email information" },
+                    { "profile", "User profile" }
+                }
+                    }
+                }
+            });
+
+            // Add operation filter to document OAuth2 requirements
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "oauth2"
+                        }
+                    },
+                    // Specify the scopes that should be selected by default
+                    new[] { "openid", "email", "profile" }
+                }
+            });
+        });
 
         return services;
     }
