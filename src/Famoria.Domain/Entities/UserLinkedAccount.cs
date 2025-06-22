@@ -6,7 +6,7 @@ public class UserLinkedAccount : AuditableEntity
     public required string UserId { get; init; }            // Who connected it
     public required string Provider { get; init; }          // e.g., "Google", "Microsoft"
     public required FamilyItemSource Source { get; init; }  // e.g., "Email", "Calendar", "Drive"
-    public required string UserEmail { get; init; }         // Email address tied to the integration
+    public required string LinkedAccount { get; init; }         // Email address tied to the integration
 
     public string? AccessToken { get; set; }                // Store temporarily if needed
     public string? RefreshToken { get; set; }               // Optional — store securely

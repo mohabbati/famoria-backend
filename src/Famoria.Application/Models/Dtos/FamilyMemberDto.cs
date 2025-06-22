@@ -4,9 +4,10 @@ namespace Famoria.Application.Models.Dtos;
 
 public record FamilyMemberDto
 (
+    string UserId,
     string Name,
-    FamilyMemberRole Role,
-    string? Color,
-    string? Icon,
-    List<string>? Tags
+    FamilyMemberRole Role = FamilyMemberRole.Child,
+    string? Color = default,
+    string? Icon = default,
+    List<string>? Tags = default
 );

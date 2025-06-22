@@ -30,7 +30,7 @@ public class EmailPersistenceService : IEmailPersistenceService
     public async Task<string> PersistAsync(string emlContent, string familyId, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
-        var itemId = IdGenerator.NewId();
+        var itemId = IdFactory.NewGuidId();
         try
         {
             var mime = MimeMessage.Load(new MemoryStream(Encoding.UTF8.GetBytes(emlContent)));
@@ -49,7 +49,7 @@ public class EmailPersistenceService : IEmailPersistenceService
             {
                 if (attachment is MimePart part)
                 {
-                    var fileName = part.FileName ?? IdGenerator.NewId();
+                    var fileName = part.FileName ?? IdFactory.NewGuidId();
                     var attachmentBlobPath = $"{familyId}/email/{itemId}/attachments/{fileName}";
                     var attachmentBlobClient = _blobContainerClient.GetBlobClient(attachmentBlobPath);
                     await using var stream = new MemoryStream();

@@ -63,7 +63,7 @@ public class GmailEmailFetcher : IEmailFetcher
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching emails for {UserEmail}: {Message} (CorrelationId: {CorrelationId})",
+                _logger.LogError(ex, "Error fetching emails for {LinkedAccount}: {Message} (CorrelationId: {CorrelationId})",
                     userEmail, ex.Message, correlationId);
                 throw;
             }

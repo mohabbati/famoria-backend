@@ -1,3 +1,4 @@
+using Famoria.Domain.Common;
 using Famoria.Domain.Enums;
 
 namespace Famoria.Application.Services;
@@ -15,18 +16,19 @@ public class ConnectorService : IConnectorService
 
     public async Task LinkAsync(string famoriaUserId, string familyId, string provider, string email, string accessToken, string? refreshToken, DateTime expiresAt, CancellationToken cancellationToken)
     {
-        //TODO: Check for existing linked account for the same user and provider
-
         var encryptedAccessToken = _crypto.Encrypt(accessToken);
         var encryptedRefreshToken = refreshToken is null ? null : _crypto.Encrypt(refreshToken);
 
+        var id = IdFactory.CreateDeterministicId($"{famoriaUserId}:{FamilyItemSource.Email}:{email}");
+
         var linkedAccount = new UserLinkedAccount
         {
+            Id = id,
             FamilyId = familyId,
             UserId = famoriaUserId,
             Provider = provider,
             Source = FamilyItemSource.Email,
-            UserEmail = email,
+            LinkedAccount = email,
             AccessToken = encryptedAccessToken,
             RefreshToken = encryptedRefreshToken,
             TokenExpiresAtUtc = expiresAt,

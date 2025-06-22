@@ -26,11 +26,11 @@ public static class ConfigureInfrastructure
 
         builder.Services.AddCosmosKit(databaseId,
         [
-            new EntityContainer(typeof(Family), "families", nameof(Family.Id)),
-            new EntityContainer(typeof(FamilyItem), "family-items", nameof(FamilyItem.FamilyId)),
-            new EntityContainer(typeof(FamilyTask), "family-tasks", nameof(FamilyTask.FamilyId)),
             new EntityContainer(typeof(FamoriaUser), "users", nameof(FamoriaUser.Id)),
-            new EntityContainer(typeof(UserLinkedAccount), "user-linked-account", nameof(UserLinkedAccount.FamilyId)),
+            new EntityContainer(typeof(Family), "families", nameof(Family.Id)),
+            new EntityContainer(typeof(UserLinkedAccount), "user-linked-accounts", nameof(UserLinkedAccount.FamilyId)),
+            new EntityContainer(typeof(FamilyItem), "family-items", nameof(FamilyItem.FamilyId)),
+            new EntityContainer(typeof(FamilyTask), "family-tasks", nameof(FamilyTask.FamilyId))
         ], options =>
         {
             options.TypeInfoResolver = FamoriaJsonContext.Default;

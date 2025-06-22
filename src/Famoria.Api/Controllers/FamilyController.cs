@@ -29,15 +29,38 @@ public class FamilyController : CustomControllerBase
 
         var famoriaUserId = User.FamoriaUserId()!;
 
-        request.Members.Add(new(User.Name()!, FamilyMemberRole.Parent, default, default, default));
+        request.Members.Add(new(famoriaUserId, User.Name()!, FamilyMemberRole.Parent, default, default, default));
 
-        var familyId = await _familyService.CreateAsync(famoriaUserId, request, cancellationToken);
+        var familyId = await _familyService.CreateAsync(request, cancellationToken);
 
         var userDto = await _userService.AddFamilyToUserAsync(famoriaUserId, familyId, cancellationToken);
 
         var newToken = await _jwtService.SignAsync(userDto);
 
         Response.AppendAccessToken(newToken);
+
+        return Ok(familyId);
+    }
+
+    [Authorize]
+    [HttpPut]
+    public async Task<IActionResult> Update([FromBody] FamilyDto request, CancellationToken cancellationToken)
+    {
+        var existingFamilyId = User.FamilyId();
+
+        if (string.IsNullOrEmpty(existingFamilyId))
+            return BadRequest("Family not found.");
+
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+            return BadRequest("DisplayName required.");
+
+        var famoriaUserId = User.FamoriaUserId()!;
+
+        var familyToUpdate = new UpdateFamilyDto(existingFamilyId, request.DisplayName, request.Members);
+
+        familyToUpdate.Members.Add(new(famoriaUserId, User.Name()!, FamilyMemberRole.Parent, default, default, default));
+
+        var familyId = await _familyService.UpdateAsync(familyToUpdate, cancellationToken);
 
         return Ok(familyId);
     }
