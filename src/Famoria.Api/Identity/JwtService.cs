@@ -5,7 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace Famoria.Application.Services;
+namespace Famoria.Api.Identity;
 
 public class JwtService : IJwtService
 {

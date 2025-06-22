@@ -1,4 +1,4 @@
-namespace Famoria.Application.Interfaces;
+namespace Famoria.Api.Identity;
 
 /// <summary>
 /// Service for signing and validating JSON Web Tokens (JWTs).

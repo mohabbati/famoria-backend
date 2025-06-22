@@ -1,5 +1,4 @@
 using Famoria.Domain.Enums;
-using System.Security.Claims;
 
 namespace Famoria.Application.Services;
 
@@ -14,25 +13,26 @@ public class ConnectorService : IConnectorService
         _repository = repository;
     }
 
-    public async Task LinkAsync(string provider, string familyId, ClaimsPrincipal principal, string accessToken, string? refreshToken, DateTime expiresAt, CancellationToken cancellationToken)
+    public async Task LinkAsync(string famoriaUserId, string familyId, string provider, string email, string accessToken, string? refreshToken, DateTime expiresAt, CancellationToken cancellationToken)
     {
-        var userId = principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? 
-                    principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ?? 
-                    throw new InvalidOperationException("sub missing");
-        var email = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ?? string.Empty;
+        //TODO: Check for existing linked account for the same user and provider
+
+        var encryptedAccessToken = _crypto.Encrypt(accessToken);
+        var encryptedRefreshToken = refreshToken is null ? null : _crypto.Encrypt(refreshToken);
 
         var linkedAccount = new UserLinkedAccount
         {
             FamilyId = familyId,
-            UserId = userId,
+            UserId = famoriaUserId,
             Provider = provider,
             Source = FamilyItemSource.Email,
             UserEmail = email,
-            AccessToken = _crypto.Encrypt(accessToken),
-            RefreshToken = refreshToken is null ? null : _crypto.Encrypt(refreshToken),
+            AccessToken = encryptedAccessToken,
+            RefreshToken = encryptedRefreshToken,
             TokenExpiresAtUtc = expiresAt,
             IsActive = true
         };
+
         await _repository.UpsertAsync(linkedAccount, cancellationToken);
     }
 }

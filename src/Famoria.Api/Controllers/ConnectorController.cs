@@ -36,8 +36,6 @@ public class ConnectorController : CustomControllerBase
     [HttpGet("link/gmail/callback")]
     public async Task<IActionResult> LinkGmailCallback([FromQuery] string returnUrl, CancellationToken cancellationToken)
     {
-        var famoriaUserId = User.FamoriaUserId();
-
         var origin = UrlHelper.GetOrigin(_config, returnUrl);
         var result = await HttpContext.AuthenticateAsync("GmailLink");
         if (!result.Succeeded || result.Principal is null)
@@ -68,7 +66,7 @@ public class ConnectorController : CustomControllerBase
 
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        await _connector.LinkAsync("Google", familyId, result.Principal, accessToken, refreshToken, expiresAt, cancellationToken);
+        await _connector.LinkAsync(User.FamoriaUserId()!, familyId, "Google", linkedEmail!, accessToken, refreshToken, expiresAt, cancellationToken);
 
         var html = $"<script>window.opener.postMessage({{gmail:'linked'}},'{origin}');window.close();</script>";
 
@@ -123,8 +121,8 @@ public class ConnectorController : CustomControllerBase
 
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        await _connector.LinkAsync("Microsoft", familyId, result.Principal, accessToken, refreshToken, expiresAt, cancellationToken);
-
+        await _connector.LinkAsync(User.FamoriaUserId()!, familyId, "Microsoft", linkedEmail!, accessToken, refreshToken, expiresAt, cancellationToken);
+        
         var html = $"<script>window.opener.postMessage({{outlook:'linked'}},'{safeReturnUrl}');window.close();</script>";
 
         return Content(html, "text/html");

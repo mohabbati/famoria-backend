@@ -7,6 +7,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder
     .AddServiceDefaults()
     .AddInfrastructure()
+    .AddApplication()
     .AddApiServices();
 
 builder.Services.AddControllers();

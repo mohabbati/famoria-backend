@@ -24,7 +24,7 @@ public class FamilyService : IFamilyService
             }).ToList() ?? [],
         };
 
-        var result = await _families.AddAsync(family, cancellationToken);
+        var result = await _families.UpsertAsync(family, cancellationToken);
 
         return result.Id;
     }

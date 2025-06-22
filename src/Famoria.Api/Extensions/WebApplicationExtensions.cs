@@ -1,7 +1,22 @@
+using Famoria.Api.Identity;
+using Famoria.Application.Models;
+
 namespace Famoria.Api.Extensions;
 
 public static class WebApplicationExtensions
 {
+    public static IHostApplicationBuilder AddApiServices(this IHostApplicationBuilder builder)
+    {
+        builder.Services
+            .AddOptions<JwtSettings>()
+            .Bind(builder.Configuration.GetSection("Auth:Jwt"));
+
+        builder.Services.AddTransient<IJwtService, JwtService>();
+        builder.Services.AddTransient<ISignInService, SignInService>();
+        
+        return builder;
+    }
+
     public static void UseCustomSwagger(this WebApplication app, IConfiguration configuration)
     {
         app.UseSwagger();

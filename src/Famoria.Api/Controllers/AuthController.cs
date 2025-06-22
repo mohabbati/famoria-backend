@@ -6,20 +6,21 @@ namespace Famoria.Api.Controllers;
 
 public class AuthController : CustomControllerBase
 {
-    private readonly IUserService _userService;
+    private readonly ISignInService _signInService;
     private readonly IConfiguration _config;
     private readonly IJwtService _jwt;
 
     public AuthController(IMediator mediator,
-                          IUserService signIn,
+                          ISignInService signInService,
                           IConfiguration config,
                           IJwtService jwt) : base(mediator)
     {
-        _userService = signIn;
+        _signInService = signInService;
         _config = config;
         _jwt = jwt;
     }
 
+    [AllowAnonymous]
     [HttpGet("signin/google")]
     public IResult SignInGoogle([FromQuery] string returnUrl)
     {
@@ -33,6 +34,7 @@ public class AuthController : CustomControllerBase
         return Results.Challenge(props, ["Google"]);
     }
 
+    [AllowAnonymous]
     [HttpGet("signin/google/callback")]
     public async Task<IActionResult> SignInGoogleCallback([FromQuery] string returnUrl, CancellationToken cancellationToken)
     {
@@ -63,7 +65,7 @@ public class AuthController : CustomControllerBase
         if (string.IsNullOrEmpty(userDto.ProviderSub))
             throw new InvalidOperationException("subject missing");
 
-        var token = await _userService.SignInAsync(userDto, cancellationToken);
+        var token = await _signInService.SignInAsync(userDto, cancellationToken);
 
         Response.AppendAccessToken(token);
 
@@ -72,6 +74,7 @@ public class AuthController : CustomControllerBase
         return Content(html, "text/html");
     }
 
+    [AllowAnonymous]
     [HttpGet("signin/microsoft")]
     public IResult SignInMicrosoft([FromQuery] string returnUrl)
     {
@@ -85,6 +88,7 @@ public class AuthController : CustomControllerBase
         return Results.Challenge(props, ["Microsoft"]);
     }
 
+    [AllowAnonymous]
     [HttpGet("signin/microsoft/callback")]
     public async Task<IActionResult> SignInMicrosoftCallback([FromQuery] string returnUrl, CancellationToken cancellationToken)
     {
@@ -108,7 +112,7 @@ public class AuthController : CustomControllerBase
         if (string.IsNullOrEmpty(userDto.ProviderSub))
             throw new InvalidOperationException("subject missing");
 
-        var token = await _userService.SignInAsync(userDto, cancellationToken);
+        var token = await _signInService.SignInAsync(userDto, cancellationToken);
 
         Response.AppendAccessToken(token);
 
@@ -130,11 +134,11 @@ public class AuthController : CustomControllerBase
     [HttpGet("bff/user")]
     public IActionResult GetCurrentUser()
     {
-        var sub = User.GetClaim(ClaimTypes.NameIdentifier) ??
+        var sub = User.FamoriaUserId() ??
             throw new InvalidOperationException("subject missing");
-        var email = User.GetClaim(ClaimTypes.Email) ??
+        var email = User.Email() ??
             throw new InvalidOperationException("email missing");
-        var familyId = User.GetClaim("family_id");
+        var familyId = User.FamilyId();
 
         return string.IsNullOrEmpty(sub) || string.IsNullOrEmpty(email)
             ? Unauthorized()
@@ -149,6 +153,7 @@ public class AuthController : CustomControllerBase
         var email = user.GetClaim(ClaimTypes.Email) ?? string.Empty;
         var iss = user.Claims.Select(c => c.Issuer).FirstOrDefault()?.ToLowerInvariant() ?? string.Empty;
         var sub = user.GetClaim(ClaimTypes.NameIdentifier) ?? string.Empty;
-        return new FamoriaUserDto(name, firstName, lastName, email, iss, sub, []);
+        var id = $"{iss}-{sub}";
+        return new FamoriaUserDto(id, name, firstName, lastName, email, iss, sub, []);
     }
 }

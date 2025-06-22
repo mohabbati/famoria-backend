@@ -7,9 +7,10 @@ namespace Famoria.Application.Services;
 public class AesCryptoService : IAesCryptoService
 {
     private readonly byte[] _key;
+
     public AesCryptoService(byte[] key)
     {
-        if (key == null /*|| key.Length != 32*/)
+        if (key == null || key.Length != 32)
             throw new ArgumentException("Key must be 32 bytes (256 bits) for AES-256.");
         _key = key;
     }

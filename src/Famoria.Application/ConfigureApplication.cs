@@ -1,20 +1,19 @@
+using System.Text;
+
 using Famoria.Application.Models;
 using Famoria.Application.Services;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+
 using Polly;
 
 namespace Famoria.Application;
 
 public static class ConfigureApplication
 {
-    public static IHostApplicationBuilder AddApiServices(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddApplication(this IHostApplicationBuilder builder)
     {
-        builder.Services
-            .AddOptions<JwtSettings>()
-            .Bind(builder.Configuration.GetSection("Auth:Jwt"));
-
-        builder.Services.AddTransient<IJwtService, JwtService>();
         builder.Services.AddTransient<IUserService, UserService>();
         builder.Services.AddTransient<IFamilyService, FamilyService>();
         builder.Services.AddTransient<IConnectorService, ConnectorService>();
@@ -29,11 +28,11 @@ public static class ConfigureApplication
         // builder.Services.AddSingleton<IUserIntegrationConnectionService, CosmosDbIntegrationConnectionService>();
         // Retrieve the AES key from environment or configuration. In production this
         // should come from a secure store such as Azure Key Vault.
-        var keyBase64 = Environment.GetEnvironmentVariable("AUTH_ENCRYPTION_KEY")
+        var key = Environment.GetEnvironmentVariable("AUTH_ENCRYPTION_KEY")
                          ?? builder.Configuration["Auth:EncryptionKey"];
-        if (string.IsNullOrEmpty(keyBase64))
+        if (string.IsNullOrEmpty(key))
             throw new InvalidOperationException("EncryptionKey not configured");
-        var aesKey = Convert.FromBase64String(keyBase64);
+        var aesKey = Encoding.UTF8.GetBytes(key);
         builder.Services.AddSingleton<IAesCryptoService>(new AesCryptoService(aesKey));
     }
 

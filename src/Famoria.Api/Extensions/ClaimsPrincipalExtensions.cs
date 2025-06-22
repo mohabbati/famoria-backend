@@ -14,6 +14,15 @@ public static class ClaimsPrincipalExtensions
     public static string? Email(this ClaimsPrincipal user) =>
         user.GetClaim(ClaimTypes.Email);
 
+    public static string? FirstName(this ClaimsPrincipal user) =>
+        user.GetClaim(ClaimTypes.GivenName);
+
+    public static string? LastName(this ClaimsPrincipal user) =>
+        user.GetClaim(ClaimTypes.Surname);
+
+    public static string? Name(this ClaimsPrincipal user) =>
+        user.GetClaim(ClaimTypes.Name);
+
     public static string? FamilyId(this ClaimsPrincipal user) =>
         user.GetClaim("family_id");
 }

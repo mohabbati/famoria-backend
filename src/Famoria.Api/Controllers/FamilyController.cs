@@ -1,3 +1,5 @@
+using Famoria.Domain.Enums;
+
 namespace Famoria.Api.Controllers;
 
 public class FamilyController : CustomControllerBase
@@ -17,10 +19,16 @@ public class FamilyController : CustomControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] FamilyDto request, CancellationToken cancellationToken)
     {
+        var famoriaUserId = User.FamoriaUserId()!;
+        var existingFamilyId = User.FamilyId()!;
+
+        if (!string.IsNullOrEmpty(existingFamilyId))
+            return BadRequest("User already has a family.");
+
         if (string.IsNullOrWhiteSpace(request.DisplayName))
             return BadRequest("DisplayName required.");
 
-        var famoriaUserId = User.FamoriaUserId()!;
+        request.Members.Add(new(User.Name()!, FamilyMemberRole.Parent, null, null, null));
 
         var familyId = await _familyService.CreateAsync(famoriaUserId, request, cancellationToken);
 
