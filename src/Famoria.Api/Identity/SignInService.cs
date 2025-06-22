@@ -20,7 +20,7 @@ public class SignInService : ISignInService
             user = await _userService.CreateAsync(userDto, cancellationToken);
         }
 
-        var token = _jwtService.Sign(user.Id, user.Email, user.FamilyIds.FirstOrDefault());
+        var token = await _jwtService.SignAsync(user);
 
         return token;
     }

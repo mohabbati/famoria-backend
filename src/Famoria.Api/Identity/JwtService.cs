@@ -26,22 +26,22 @@ public class JwtService : IJwtService
         _tokenLifetime = settings.TokenLifetime;
     }
 
-    public string Sign(
-        string subject,
-        string email,
-        string? familyId = null,
-        IEnumerable<string>? roles = null)
+    public Task<string> SignAsync(FamoriaUserDto userDto, IEnumerable<string>? roles = null)
     {
         var now = DateTime.UtcNow;
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, subject),
-            new(ClaimTypes.NameIdentifier, subject),
-            new(JwtRegisteredClaimNames.Email, email),
+            new(JwtRegisteredClaimNames.Sub, userDto.Id),
+            new(ClaimTypes.NameIdentifier, userDto.Id),
+            new(JwtRegisteredClaimNames.Name, userDto.Name),
+            new(JwtRegisteredClaimNames.GivenName, userDto.FirstName),
+            new(JwtRegisteredClaimNames.FamilyName, userDto.LastName),
+            new(JwtRegisteredClaimNames.Email, userDto.Email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Iat, new DateTimeOffset(now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
 
+        var familyId = userDto.FamilyIds.SingleOrDefault();
         if (!string.IsNullOrEmpty(familyId))
             claims.Add(new("family_id", familyId));
 
@@ -62,6 +62,6 @@ public class JwtService : IJwtService
             signingCredentials: creds
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
     }
 }

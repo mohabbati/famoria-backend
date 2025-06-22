@@ -19,7 +19,6 @@ public class FamilyController : CustomControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] FamilyDto request, CancellationToken cancellationToken)
     {
-        var famoriaUserId = User.FamoriaUserId()!;
         var existingFamilyId = User.FamilyId()!;
 
         if (!string.IsNullOrEmpty(existingFamilyId))
@@ -28,13 +27,15 @@ public class FamilyController : CustomControllerBase
         if (string.IsNullOrWhiteSpace(request.DisplayName))
             return BadRequest("DisplayName required.");
 
-        request.Members.Add(new(User.Name()!, FamilyMemberRole.Parent, null, null, null));
+        var famoriaUserId = User.FamoriaUserId()!;
+
+        request.Members.Add(new(User.Name()!, FamilyMemberRole.Parent, default, default, default));
 
         var familyId = await _familyService.CreateAsync(famoriaUserId, request, cancellationToken);
 
-        await _userService.AddFamilyToUserAsync(famoriaUserId, familyId, cancellationToken);
+        var userDto = await _userService.AddFamilyToUserAsync(famoriaUserId, familyId, cancellationToken);
 
-        var newToken = _jwtService.Sign(famoriaUserId, User.Email()!, familyId);
+        var newToken = await _jwtService.SignAsync(userDto);
 
         Response.AppendAccessToken(newToken);
 

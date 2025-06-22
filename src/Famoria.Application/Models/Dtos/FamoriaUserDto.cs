@@ -2,7 +2,7 @@ namespace Famoria.Application.Models.Dtos;
 
 public record FamoriaUserDto(
     string Id,
-    string GivenName,
+    string Name,
     string FirstName,
     string LastName,
     string Email,

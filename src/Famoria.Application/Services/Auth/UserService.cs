@@ -12,7 +12,7 @@ public class UserService : IUserService
     public async Task<FamoriaUserDto> CreateAsync(FamoriaUserDto userDto, CancellationToken cancellationToken = default)
     {
         var user = new FamoriaUser(userDto.Id, userDto.Email, userDto.Provider, userDto.ProviderSub, [])
-                { GivenName = userDto.GivenName, FirstName = userDto.LastName, LastName = userDto.LastName };
+                { GivenName = userDto.Name, FirstName = userDto.LastName, LastName = userDto.LastName };
 
         await _users.AddAsync(user, cancellationToken);
 
@@ -44,7 +44,7 @@ public class UserService : IUserService
             user.ProviderSub,
             user.FamilyIds);
     }
-    public async Task AddFamilyToUserAsync(string userId, string familyId, CancellationToken cancellationToken = default)
+    public async Task<FamoriaUserDto> AddFamilyToUserAsync(string userId, string familyId, CancellationToken cancellationToken = default)
     {
         var user = await _users.GetByAsync(new FamoriaUser(userId), cancellationToken);
 
@@ -53,6 +53,16 @@ public class UserService : IUserService
 
         user.FamilyIds.Add(familyId);
 
-        await _users.UpdateAsync(user, cancellationToken);
+        var updated = await _users.UpdateAsync(user, cancellationToken);
+
+        return new FamoriaUserDto(
+            updated.Id,
+            updated.GivenName,
+            updated.FirstName,
+            updated.LastName,
+            updated.Email,
+            updated.Provider,
+            updated.ProviderSub,
+            updated.FamilyIds);
     }
 }
