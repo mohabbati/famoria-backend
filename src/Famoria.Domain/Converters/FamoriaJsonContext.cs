@@ -10,4 +10,5 @@ namespace Famoria.Domain.Converters;
 [JsonSerializable(typeof(EmailPayload))]
 [JsonSerializable(typeof(CalendarPayload))]
 [JsonSerializable(typeof(UserLinkedAccount))]
+[JsonSerializable(typeof(UserLinkedAccount[]))]
 public partial class FamoriaJsonContext : JsonSerializerContext { }

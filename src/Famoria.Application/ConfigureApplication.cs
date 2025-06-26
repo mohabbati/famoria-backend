@@ -1,6 +1,6 @@
+using System.Reflection;
 using System.Text;
 
-using Famoria.Application.Models;
 using Famoria.Application.Services;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +14,8 @@ public static class ConfigureApplication
 {
     public static IHostApplicationBuilder AddApplication(this IHostApplicationBuilder builder)
     {
+        builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(ConfigureApplication))!));
+
         builder.Services.AddTransient<IUserService, UserService>();
         builder.Services.AddTransient<IFamilyService, FamilyService>();
         builder.Services.AddTransient<IConnectorService, ConnectorService>();

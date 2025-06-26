@@ -28,7 +28,7 @@ public static class ConfigureInfrastructure
         [
             new EntityContainer(typeof(FamoriaUser), "users", nameof(FamoriaUser.Id)),
             new EntityContainer(typeof(Family), "families", nameof(Family.Id)),
-            new EntityContainer(typeof(UserLinkedAccount), "user-linked-accounts", nameof(UserLinkedAccount.FamilyId)),
+            new EntityContainer(typeof(UserLinkedAccount), "user-linked-accounts", nameof(UserLinkedAccount.Provider)),
             new EntityContainer(typeof(FamilyItem), "family-items", nameof(FamilyItem.FamilyId)),
             new EntityContainer(typeof(FamilyTask), "family-tasks", nameof(FamilyTask.FamilyId))
         ], options =>
@@ -62,6 +62,7 @@ public static class ConfigureInfrastructure
             {
                 blobsSettings.DisableTracing = false;
                 blobsSettings.Credential = new DefaultAzureCredential();
+                blobsSettings.BlobContainerName = builder.Configuration["BlobContainerSettings:ContainerName"];
             });
 
         return builder;

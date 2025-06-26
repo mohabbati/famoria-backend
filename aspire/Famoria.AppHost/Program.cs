@@ -1,5 +1,7 @@
 #pragma warning disable ASPIRECOSMOSDB001
 
+using Aspire.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(x =>
@@ -10,17 +12,18 @@ var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(x =>
     })
     .PublishAsConnectionString();
 var cosmosDb = cosmos.AddCosmosDatabase("cosmos-db", "famoria");
-cosmosDb.AddContainer("families", "/id");
-cosmosDb.AddContainer("family-items", "/FamilyId");
-cosmosDb.AddContainer("family-tasks", "/FamilyId");
 cosmosDb.AddContainer("users", "/id");
+cosmosDb.AddContainer("families", "/id");
+cosmosDb.AddContainer("user-linked-accounts", "/provider");
+cosmosDb.AddContainer("family-items", "/familyId");
+cosmosDb.AddContainer("family-tasks", "/familyId");
 
-var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
+var blobContainer = builder.AddAzureStorage("storage-account").RunAsEmulator(x =>
     {
         x.WithLifetime(ContainerLifetime.Persistent);
     })
     .AddBlobs("blobs")
-    .AddBlobContainer("famoria");
+    .AddBlobContainer("blob-container", "famoria");
 
 #region Dev Mail
 //// GreenMail container (IMAP/SMTP)
@@ -47,30 +50,33 @@ var blobContainer = builder.AddAzureStorage("blob-container").RunAsEmulator(x =>
 #endregion
 
 var api = builder.AddProject<Projects.Famoria_Api>("famoria-api")
+    .WithEnvironment("CosmosDbSettings:DatabaseId", "famoria")
     .WithReference(cosmos)
     .WaitFor(cosmosDb);
 builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher-worker")
+    .WithEnvironment("CosmosDbSettings:DatabaseId", "famoria")
+    .WithEnvironment("BlobContainerSettings:ContainerName", "famoria")
     .WithReference(cosmos)
     .WaitFor(cosmosDb)
     .WithReference(blobContainer)
     .WaitFor(blobContainer);
-builder.AddProject<Projects.Famoria_Email_Filter_Worker>("famoria-email-filter-worker")
-    .WithReference(cosmos)
-    .WaitFor(cosmosDb)
-    .WithReference(blobContainer)
-    .WaitFor(blobContainer);
-builder.AddProject<Projects.Famoria_Tasker_Worker>("famoria-tasker-worker")
-    .WithReference(cosmos)
-    .WaitFor(cosmosDb)
-    .WithReference(blobContainer)
-    .WaitFor(blobContainer);
-builder.AddProject<Projects.Famoria_Summarizer_Worker>("famoria-summarizer-worker")
-    .WithReference(cosmos)
-    .WaitFor(cosmosDb)
-    .WithReference(blobContainer)
-    .WaitFor(blobContainer);
+//builder.AddProject<Projects.Famoria_Email_Filter_Worker>("famoria-email-filter-worker")
+//    .WithReference(cosmos)
+//    .WaitFor(cosmosDb)
+//    .WithReference(blobContainer)
+//    .WaitFor(blobContainer);
+//builder.AddProject<Projects.Famoria_Tasker_Worker>("famoria-tasker-worker")
+//    .WithReference(cosmos)
+//    .WaitFor(cosmosDb)
+//    .WithReference(blobContainer)
+//    .WaitFor(blobContainer);
+//builder.AddProject<Projects.Famoria_Summarizer_Worker>("famoria-summarizer-worker")
+//    .WithReference(cosmos)
+//    .WaitFor(cosmosDb)
+//    .WithReference(blobContainer)
+//    .WaitFor(blobContainer);
 
-builder.AddProject<Projects.Famoria_AuthTestWasm>("famoria-auth-test-wasm")
-    .WaitFor(api);
+//builder.AddProject<Projects.Famoria_AuthTester>("famoria-auth-tester")
+//    .WaitFor(api);
 
 builder.Build().Run();

@@ -22,7 +22,7 @@ public class FamoriaUser : AuditableEntity
     }
 
     public string Email { get; set; } = default!;
-    public string GivenName { get; set; } = default!;
+    public string Name { get; set; } = default!;
     public string FirstName { get; set; } = default!;
     public string LastName { get; set; } = default!;
     public string Provider { get; set; } = default!;

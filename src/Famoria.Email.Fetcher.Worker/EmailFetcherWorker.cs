@@ -1,5 +1,5 @@
-using Famoria.Application.Features.FetchEmails;
-
+using Famoria.Application.Features.ProcessLinkedAccounts;
+using Famoria.Domain.Enums;
 using MediatR;
 
 namespace Famoria.Email.Fetcher.Worker;
@@ -7,41 +7,37 @@ namespace Famoria.Email.Fetcher.Worker;
 public class EmailFetcherWorker : BackgroundService
 {
     private readonly ILogger<EmailFetcherWorker> _logger;
-    private readonly IMediator _mediator;
-    private readonly TimeSpan _fetchInterval;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly TimeSpan _fetchInterval = TimeSpan.FromHours(1);
 
-    public EmailFetcherWorker(ILogger<EmailFetcherWorker> logger, IMediator mediator, TimeSpan? fetchInterval = null)
+    public EmailFetcherWorker(
+        ILogger<EmailFetcherWorker> logger,
+        IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
-        _mediator = mediator;
-        _fetchInterval = fetchInterval ?? TimeSpan.FromHours(1);
+        _scopeFactory = scopeFactory;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        // Track the last fetch time
-        DateTime lastFetch = DateTime.UtcNow - _fetchInterval;
-        while (!stoppingToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
-            var fetchWindowEnd = DateTime.UtcNow;
-            try
-            {
-                // TODO: Replace with real values or configuration
-                var command = new FetchEmailsCommand(
-                    FamilyId: "demo-family",
-                    UserEmail: "demo@gmail.com",
-                    AccessToken: "demo-access-token",
-                    Since: lastFetch
-                );
-                var processedCount = await _mediator.Send(command, stoppingToken);
-                _logger.LogInformation("Fetched and persisted {Count} emails at {Time}", processedCount, DateTimeOffset.Now);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error running FetchEmailsHandler");
-            }
-            lastFetch = fetchWindowEnd;
-            await Task.Delay(_fetchInterval, stoppingToken);
+            //try
+            //{
+                using var scope = _scopeFactory.CreateScope();
+
+                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+                foreach (var provider in Enum.GetValues<IntegrationProvider>())
+                {
+                    await mediator.Send(new ProcessLinkedAccountsCommand(provider), cancellationToken);
+                }
+            //}
+            //catch (Exception ex)
+            //{
+            //    _logger.LogError(ex, "Error in email fetcher main loop.");
+            //}
+            await Task.Delay(_fetchInterval, cancellationToken);
         }
     }
 }

@@ -12,13 +12,13 @@ public class UserService : IUserService
     public async Task<FamoriaUserDto> CreateAsync(FamoriaUserDto userDto, CancellationToken cancellationToken = default)
     {
         var user = new FamoriaUser(userDto.Id, userDto.Email, userDto.Provider, userDto.ProviderSub, [])
-                { GivenName = userDto.Name, FirstName = userDto.LastName, LastName = userDto.LastName };
+                { Name = userDto.Name, FirstName = userDto.FirstName, LastName = userDto.LastName };
 
         await _users.AddAsync(user, cancellationToken);
 
         return new FamoriaUserDto(
             user.Id,
-            user.GivenName,
+            user.Name,
             user.FirstName,
             user.LastName,
             user.Email,
@@ -36,7 +36,7 @@ public class UserService : IUserService
 
         return new FamoriaUserDto(
             user.Id,
-            user.GivenName,
+            user.Name,
             user.FirstName,
             user.LastName,
             user.Email,
@@ -57,7 +57,7 @@ public class UserService : IUserService
 
         return new FamoriaUserDto(
             updated.Id,
-            updated.GivenName,
+            updated.Name,
             updated.FirstName,
             updated.LastName,
             updated.Email,

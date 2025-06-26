@@ -16,6 +16,7 @@ public class FamilyService : IFamilyService
             DisplayName = familyDto.DisplayName,
             Members = familyDto.Members?.Select(c => new FamilyMember
             {
+                UserId = c.UserId,
                 Name = c.Name,
                 Role = c.Role,
                 Color = c.Color,

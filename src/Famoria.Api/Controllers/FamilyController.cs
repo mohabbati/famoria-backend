@@ -29,7 +29,7 @@ public class FamilyController : CustomControllerBase
 
         var famoriaUserId = User.FamoriaUserId()!;
 
-        request.Members.Add(new(famoriaUserId, User.Name()!, FamilyMemberRole.Parent, default, default, default));
+        request.Members.Add(new(famoriaUserId, User.FirstName()!, FamilyMemberRole.Parent, default, default, default));
 
         var familyId = await _familyService.CreateAsync(request, cancellationToken);
 

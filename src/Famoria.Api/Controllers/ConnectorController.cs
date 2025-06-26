@@ -1,3 +1,5 @@
+using Famoria.Domain.Enums;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
@@ -66,7 +68,7 @@ public class ConnectorController : CustomControllerBase
 
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        await _connector.LinkAsync(User.FamoriaUserId()!, familyId, "Google", linkedEmail!, accessToken, refreshToken, expiresAt, cancellationToken);
+        await _connector.LinkAsync(User.FamoriaUserId()!, familyId, IntegrationProvider.Google, linkedEmail!, accessToken, refreshToken, expiresAt, cancellationToken);
 
         var html = $"<script>window.opener.postMessage({{gmail:'linked'}},'{origin}');window.close();</script>";
 
@@ -121,7 +123,7 @@ public class ConnectorController : CustomControllerBase
 
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        await _connector.LinkAsync(User.FamoriaUserId()!, familyId, "Microsoft", linkedEmail!, accessToken, refreshToken, expiresAt, cancellationToken);
+        await _connector.LinkAsync(User.FamoriaUserId()!, familyId, IntegrationProvider.Microsoft, linkedEmail!, accessToken, refreshToken, expiresAt, cancellationToken);
         
         var html = $"<script>window.opener.postMessage({{outlook:'linked'}},'{safeReturnUrl}');window.close();</script>";
 

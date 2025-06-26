@@ -1,4 +1,3 @@
-using Famoria.Api.Identity;
 using Famoria.Application.Models;
 
 namespace Famoria.Api.Extensions;

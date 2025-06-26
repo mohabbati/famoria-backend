@@ -1,16 +1,20 @@
+using System.Reflection;
+
 using Famoria.Application;
+using Famoria.Application.Features.ProcessLinkedAccounts;
 using Famoria.Email.Fetcher.Worker;
 using Famoria.Infrastructure;
-using System.Reflection;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder
     .AddServiceDefaults()
     .AddInfrastructure()
+    .AddApplication()
     .AddEmailFetcherServices();
 
-builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(EmailFetcherWorker))!));
+// Register MediatR from the assembly containing ProcessLinkedAccountsHandler (Famoria.Application)
+//builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(Program))!));
 
 builder.Services.AddHostedService<EmailFetcherWorker>();
 
