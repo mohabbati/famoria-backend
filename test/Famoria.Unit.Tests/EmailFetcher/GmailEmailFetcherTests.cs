@@ -6,6 +6,9 @@ using MailKit.Search;
 using MailKit.Security;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Collections.Generic;
 
 using MimeKit;
 
@@ -19,11 +22,27 @@ public class GmailEmailFetcherTests
 {
     private readonly Mock<ILogger<GmailEmailFetcher>> _loggerMock = new();
     private readonly Mock<IImapClientWrapper> _imapClientMock = new();
+    private readonly Mock<IRepository<UserLinkedAccount>> _repoMock = new();
+    private readonly Mock<IAesCryptoService> _cryptoMock = new();
 
     private GmailEmailFetcher CreateFetcher(IAsyncPolicy? retryPolicy = null)
     {
         retryPolicy ??= Policy.NoOpAsync();
-        return new GmailEmailFetcher(_loggerMock.Object, retryPolicy, _imapClientMock.Object);
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string>
+            {
+                ["Auth:Google:ClientId"] = "id",
+                ["Auth:Google:ClientSecret"] = "secret"
+            })
+            .Build();
+        return new GmailEmailFetcher(
+            _loggerMock.Object,
+            retryPolicy,
+            _imapClientMock.Object,
+            _repoMock.Object,
+            _cryptoMock.Object,
+            new HttpClient(new HttpMessageHandlerStub()),
+            config);
     }
 
     [Fact]
@@ -236,5 +255,14 @@ public class GmailEmailFetcherTests
         await Assert.ThrowsAsync<Exception>(() => fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None));
 
         _imapClientMock.Verify(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private class HttpMessageHandlerStub : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"access_token\":\"token\",\"expires_in\":3600}")
+            });
     }
 }

@@ -36,7 +36,7 @@ public class ProcessLinkedAccountsHandler : IRequestHandler<ProcessLinkedAccount
                 if (cancellationToken.IsCancellationRequested) break;
                 //try
                 //{
-                    string decryptedAccessToken = _cryptoService.Decrypt(account.RefreshToken!);
+                    string decryptedAccessToken = _cryptoService.Decrypt(account.AccessToken);
                     var command = new FetchEmailsCommand(
                         FamilyId: account.FamilyId,
                         UserEmail: account.LinkedAccount,

@@ -1,4 +1,8 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Net.Http;
+using System.Collections.Generic;
 
 using Famoria.Application.Interfaces;
 
@@ -6,6 +10,7 @@ using MailKit.Search;
 using MailKit.Security;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 using Polly;
 using Polly.Retry;
@@ -17,12 +22,63 @@ public class GmailEmailFetcher : IEmailFetcher
     private readonly ILogger<GmailEmailFetcher> _logger;
     private readonly IAsyncPolicy _retryPolicy;
     private readonly IImapClientWrapper _imapClient;
+    private readonly IRepository<UserLinkedAccount> _repository;
+    private readonly IAesCryptoService _cryptoService;
+    private readonly HttpClient _httpClient;
+    private readonly string _clientId;
+    private readonly string _clientSecret;
 
-    public GmailEmailFetcher(ILogger<GmailEmailFetcher> logger, IAsyncPolicy retryPolicy, IImapClientWrapper imapClient)
+    public GmailEmailFetcher(
+        ILogger<GmailEmailFetcher> logger,
+        IAsyncPolicy retryPolicy,
+        IImapClientWrapper imapClient,
+        IRepository<UserLinkedAccount> repository,
+        IAesCryptoService cryptoService,
+        HttpClient httpClient,
+        IConfiguration configuration)
     {
         _logger = logger;
         _retryPolicy = retryPolicy;
         _imapClient = imapClient;
+        _repository = repository;
+        _cryptoService = cryptoService;
+        _httpClient = httpClient;
+        _clientId = configuration["Auth:Google:ClientId"] ?? throw new InvalidOperationException("Google client id missing");
+        _clientSecret = configuration["Auth:Google:ClientSecret"] ?? throw new InvalidOperationException("Google client secret missing");
+    }
+
+    private record TokenRefreshResponse(
+        [property: JsonPropertyName("access_token")] string AccessToken,
+        [property: JsonPropertyName("expires_in")] int ExpiresIn);
+
+    private async Task<string> RefreshAccessTokenAsync(string userEmail, CancellationToken cancellationToken)
+    {
+        var accounts = await _repository.GetAsync(
+            x => x.Provider == IntegrationProvider.Google && x.LinkedAccount == userEmail && x.IsActive,
+            cancellationToken: cancellationToken);
+        var account = accounts.FirstOrDefault() ?? throw new InvalidOperationException($"No linked Gmail account for {userEmail}");
+        if (string.IsNullOrEmpty(account.RefreshToken))
+            throw new InvalidOperationException($"No refresh token stored for {userEmail}");
+
+        var refreshToken = _cryptoService.Decrypt(account.RefreshToken);
+        var content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["client_id"] = _clientId,
+            ["client_secret"] = _clientSecret,
+            ["refresh_token"] = refreshToken,
+            ["grant_type"] = "refresh_token"
+        });
+
+        using var response = await _httpClient.PostAsync("https://oauth2.googleapis.com/token", content, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var tokenResponse = await JsonSerializer.DeserializeAsync<TokenRefreshResponse>(await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false), cancellationToken: cancellationToken)
+            ?? throw new InvalidOperationException("Failed to parse token response");
+
+        account.AccessToken = _cryptoService.Encrypt(tokenResponse.AccessToken);
+        account.TokenExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenResponse.ExpiresIn);
+        await _repository.UpsertAsync(account, cancellationToken).ConfigureAwait(false);
+
+        return tokenResponse.AccessToken;
     }
 
     public async Task<List<string>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken)
@@ -37,7 +93,17 @@ public class GmailEmailFetcher : IEmailFetcher
                 await _imapClient.ConnectAsync("imap.gmail.com", 993, SecureSocketOptions.SslOnConnect, ct).ConfigureAwait(false);
                 connected = true;
                 var sasl = new SaslMechanismOAuth2(userEmail, accessToken);
-                await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+                try
+                {
+                    await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+                }
+                catch (AuthenticationException)
+                {
+                    accessToken = await RefreshAccessTokenAsync(userEmail, ct).ConfigureAwait(false);
+                    sasl = new SaslMechanismOAuth2(userEmail, accessToken);
+                    await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+                }
+
                 var inbox = await _imapClient.GetInboxAsync(ct).ConfigureAwait(false);
 
                 // Only fetch emails received after 'since'
