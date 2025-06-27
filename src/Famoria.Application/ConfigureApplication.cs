@@ -6,7 +6,6 @@ using Famoria.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-using Polly;
 
 namespace Famoria.Application;
 
@@ -47,23 +46,6 @@ public static class ConfigureApplication
         builder.Services.AddTransient<IEmailFetcher>(sp => sp.GetRequiredService<GmailEmailFetcher>());
         builder.Services.AddTransient<IEmailPersistenceService, EmailPersistenceService>();
         builder.Services.AddTransient<IImapClientWrapper, ImapClientWrapper>();
-
-        builder.Services.AddSingleton<IAsyncPolicy>(
-                    Policy
-                        .Handle<MailKit.Net.Imap.ImapProtocolException>()
-                        .Or<MailKit.CommandException>()
-                        .Or<IOException>()
-                        .Or<System.Net.Sockets.SocketException>()
-                        .Or<MailKit.Security.AuthenticationException>()
-                        .WaitAndRetryAsync(
-                            retryCount: 3,
-                            sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
-                            onRetry: (exception, timespan, retryCount, context) =>
-                            {
-                                // Logging is handled in the consumer
-                            }
-                        )
-                );
 
         return builder;
     }
