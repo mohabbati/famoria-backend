@@ -1,17 +1,10 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Net.Http;
-using System.Collections.Generic;
-
-using Famoria.Application.Interfaces;
-
 using MailKit.Search;
 using MailKit.Security;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
-
 
 namespace Famoria.Application.Services;
 
@@ -98,53 +91,52 @@ public class GmailEmailFetcher : IEmailFetcher
                 await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
             }
 
-                var inbox = await _imapClient.GetInboxAsync(ct).ConfigureAwait(false);
+            var inbox = await _imapClient.GetInboxAsync(ct).ConfigureAwait(false);
 
-                // Only fetch emails received after 'since'
-                var query = SearchQuery.NotSeen.Or(SearchQuery.Recent).Or(SearchQuery.DeliveredAfter(since));
-                var uids = await _imapClient.SearchAsync(inbox, query, ct).ConfigureAwait(false);
+            // Only fetch emails received after 'since'
+            var query = SearchQuery.NotSeen.Or(SearchQuery.Recent).Or(SearchQuery.DeliveredAfter(since));
+            var uids = await _imapClient.SearchAsync(inbox, query, ct).ConfigureAwait(false);
 
-                foreach (var uid in uids)
+            foreach (var uid in uids)
+            {
+                try
                 {
-                    try
-                    {
-                        var message = await _imapClient.GetMessageAsync(inbox, uid, ct).ConfigureAwait(false);
-                        using var stream = new MemoryStream();
-                        await message.WriteToAsync(stream, ct).ConfigureAwait(false);
-                        var emlContent = Encoding.UTF8.GetString(stream.ToArray());
-                        emlList.Add(emlContent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to fetch or process message UID {Uid}: {Message} (CorrelationId: {CorrelationId})",
-                            uid, ex.Message, correlationId);
-                    }
+                    var message = await _imapClient.GetMessageAsync(inbox, uid, ct).ConfigureAwait(false);
+                    using var stream = new MemoryStream();
+                    await message.WriteToAsync(stream, ct).ConfigureAwait(false);
+                    var emlContent = Encoding.UTF8.GetString(stream.ToArray());
+                    emlList.Add(emlContent);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to fetch or process message UID {Uid}: {Message} (CorrelationId: {CorrelationId})",
+                        uid, ex.Message, correlationId);
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching emails for {LinkedAccount}: {Message} (CorrelationId: {CorrelationId})",
-                    userEmail, ex.Message, correlationId);
-                throw;
-            }
-            finally
-            {
-                if (connected)
-                {
-                    try
-                    {
-                        await _imapClient.DisconnectAsync(true, ct).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to disconnect IMAP client (CorrelationId: {CorrelationId})", correlationId);
-                    }
-                }
-
-                _imapClient.Dispose();
-            }
-
-            return emlList;
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching emails for {LinkedAccount}: {Message} (CorrelationId: {CorrelationId})",
+                userEmail, ex.Message, correlationId);
+            throw;
+        }
+        finally
+        {
+            if (connected)
+            {
+                try
+                {
+                    await _imapClient.DisconnectAsync(true, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to disconnect IMAP client (CorrelationId: {CorrelationId})", correlationId);
+                }
+            }
+
+            _imapClient.Dispose();
+        }
+
+        return emlList;
     }
 }
