@@ -12,15 +12,12 @@ using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 
-using Polly;
-using Polly.Retry;
 
 namespace Famoria.Application.Services;
 
 public class GmailEmailFetcher : IEmailFetcher
 {
     private readonly ILogger<GmailEmailFetcher> _logger;
-    private readonly IAsyncPolicy _retryPolicy;
     private readonly IImapClientWrapper _imapClient;
     private readonly IRepository<UserLinkedAccount> _repository;
     private readonly IAesCryptoService _cryptoService;
@@ -30,7 +27,6 @@ public class GmailEmailFetcher : IEmailFetcher
 
     public GmailEmailFetcher(
         ILogger<GmailEmailFetcher> logger,
-        IAsyncPolicy retryPolicy,
         IImapClientWrapper imapClient,
         IRepository<UserLinkedAccount> repository,
         IAesCryptoService cryptoService,
@@ -38,7 +34,6 @@ public class GmailEmailFetcher : IEmailFetcher
         IConfiguration configuration)
     {
         _logger = logger;
-        _retryPolicy = retryPolicy;
         _imapClient = imapClient;
         _repository = repository;
         _cryptoService = cryptoService;
@@ -83,26 +78,25 @@ public class GmailEmailFetcher : IEmailFetcher
 
     public async Task<List<string>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken)
     {
-        return await _retryPolicy.ExecuteAsync(async (ctx, ct) =>
+        var ct = cancellationToken;
+        var emlList = new List<string>();
+        var correlationId = Guid.NewGuid().ToString();
+        var connected = false;
+        try
         {
-            var emlList = new List<string>();
-            var correlationId = Guid.NewGuid().ToString();
-            var connected = false;
+            await _imapClient.ConnectAsync("imap.gmail.com", 993, SecureSocketOptions.SslOnConnect, ct).ConfigureAwait(false);
+            connected = true;
+            var sasl = new SaslMechanismOAuth2(userEmail, accessToken);
             try
             {
-                await _imapClient.ConnectAsync("imap.gmail.com", 993, SecureSocketOptions.SslOnConnect, ct).ConfigureAwait(false);
-                connected = true;
-                var sasl = new SaslMechanismOAuth2(userEmail, accessToken);
-                try
-                {
-                    await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
-                }
-                catch (AuthenticationException)
-                {
-                    accessToken = await RefreshAccessTokenAsync(userEmail, ct).ConfigureAwait(false);
-                    sasl = new SaslMechanismOAuth2(userEmail, accessToken);
-                    await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
-                }
+                await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+            }
+            catch (AuthenticationException)
+            {
+                accessToken = await RefreshAccessTokenAsync(userEmail, ct).ConfigureAwait(false);
+                sasl = new SaslMechanismOAuth2(userEmail, accessToken);
+                await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+            }
 
                 var inbox = await _imapClient.GetInboxAsync(ct).ConfigureAwait(false);
 
@@ -151,6 +145,6 @@ public class GmailEmailFetcher : IEmailFetcher
             }
 
             return emlList;
-        }, new Context(), cancellationToken).ConfigureAwait(false);
+        }
     }
 }

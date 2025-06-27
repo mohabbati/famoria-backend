@@ -14,7 +14,6 @@ using MimeKit;
 
 using Moq;
 
-using Polly;
 
 namespace Famoria.Unit.Tests.EmailFetcher;
 
@@ -25,9 +24,8 @@ public class GmailEmailFetcherTests
     private readonly Mock<IRepository<UserLinkedAccount>> _repoMock = new();
     private readonly Mock<IAesCryptoService> _cryptoMock = new();
 
-    private GmailEmailFetcher CreateFetcher(IAsyncPolicy? retryPolicy = null)
+    private GmailEmailFetcher CreateFetcher()
     {
-        retryPolicy ??= Policy.NoOpAsync();
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string>
             {
@@ -37,7 +35,6 @@ public class GmailEmailFetcherTests
             .Build();
         return new GmailEmailFetcher(
             _loggerMock.Object,
-            retryPolicy,
             _imapClientMock.Object,
             _repoMock.Object,
             _cryptoMock.Object,
@@ -48,7 +45,6 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_ReturnsEmails_WhenFound()
     {
-        var retryPolicy = Policy.NoOpAsync();
         var inboxMock = new Mock<IMailFolder>();
         var uids = new List<UniqueId> { new UniqueId(1) };
         var message = new MimeMessage();
@@ -60,7 +56,7 @@ public class GmailEmailFetcherTests
         _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[0], It.IsAny<CancellationToken>())).ReturnsAsync(message);
         _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
 
         var result = await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
 
@@ -70,7 +66,6 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_LogsMessageLevelError()
     {
-        var retryPolicy = Policy.NoOpAsync();
         var inboxMock = new Mock<IMailFolder>();
         var uids = new List<UniqueId> { new UniqueId(1) };
         _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -80,7 +75,7 @@ public class GmailEmailFetcherTests
         _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[0], It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Message error"));
         _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
 
         var result = await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
 
@@ -97,9 +92,8 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_LogsError_OnException()
     {
-        var retryPolicy = Policy.NoOpAsync();
         _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Connection error"));
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
 
         await Assert.ThrowsAsync<Exception>(async () =>
         {
@@ -118,7 +112,6 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_RespectsCancellationToken()
     {
-        var retryPolicy = Policy.NoOpAsync();
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -126,7 +119,7 @@ public class GmailEmailFetcherTests
             .Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException(cts.Token));
 
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
@@ -134,28 +127,10 @@ public class GmailEmailFetcherTests
         });
     }
 
-    [Fact]
-    public async Task GetNewEmailsAsync_RetriesOnTransientError()
-    {
-        var callCount = 0;
-        var retryPolicy = Policy
-            .Handle<Exception>()
-            .RetryAsync(2, onRetry: (ex, count, ctx) => callCount++);
-        _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Connection error"));
-        var fetcher = CreateFetcher(retryPolicy);
-
-        await Assert.ThrowsAsync<Exception>(async () =>
-        {
-            await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
-        });
-
-        Assert.True(callCount >= 1); // Should retry at least once
-    }
 
     [Fact]
     public async Task GetNewEmailsAsync_ReturnsEmptyList_WhenNoMessages()
     {
-        var retryPolicy = Policy.NoOpAsync();
         var inboxMock = new Mock<IMailFolder>();
         var uids = new List<UniqueId>();
         _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -164,7 +139,7 @@ public class GmailEmailFetcherTests
         _imapClientMock.Setup(x => x.SearchAsync(inboxMock.Object, It.IsAny<SearchQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(uids);
         _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
 
         var result = await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
 
@@ -174,7 +149,6 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_ReturnsAllEmails_WhenMultipleFound()
     {
-        var retryPolicy = Policy.NoOpAsync();
         var inboxMock = new Mock<IMailFolder>();
         var uids = new List<UniqueId> { new UniqueId(1), new UniqueId(2) };
         var message1 = new MimeMessage();
@@ -189,7 +163,7 @@ public class GmailEmailFetcherTests
         _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[1], It.IsAny<CancellationToken>())).ReturnsAsync(message2);
         _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
 
         var result = await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
 
@@ -199,7 +173,6 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_ReturnsRawEmlContent()
     {
-        var retryPolicy = Policy.NoOpAsync();
         var inboxMock = new Mock<IMailFolder>();
         var uids = new List<UniqueId> { new UniqueId(1) };
         var message = new MimeMessage();
@@ -212,7 +185,7 @@ public class GmailEmailFetcherTests
         _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[0], It.IsAny<CancellationToken>())).ReturnsAsync(message);
         _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
         var result = await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
 
         Assert.Single(result);
@@ -223,7 +196,6 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_AlwaysDisconnects_OnError()
     {
-        var retryPolicy = Policy.NoOpAsync();
         var inboxMock = new Mock<IMailFolder>();
         var uids = new List<UniqueId> { new UniqueId(1) };
         _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -233,7 +205,7 @@ public class GmailEmailFetcherTests
         _imapClientMock.Setup(x => x.GetMessageAsync(inboxMock.Object, uids[0], It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Message error"));
         _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
         await fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None);
 
         _imapClientMock.Verify(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>()), Times.Once);
@@ -242,7 +214,6 @@ public class GmailEmailFetcherTests
     [Fact]
     public async Task GetNewEmailsAsync_Disconnects_WhenSearchFails()
     {
-        var retryPolicy = Policy.NoOpAsync();
         var inboxMock = new Mock<IMailFolder>();
         _imapClientMock.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _imapClientMock.Setup(x => x.AuthenticateAsync(It.IsAny<SaslMechanism>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -250,7 +221,7 @@ public class GmailEmailFetcherTests
         _imapClientMock.Setup(x => x.SearchAsync(inboxMock.Object, It.IsAny<SearchQuery>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Search error"));
         _imapClientMock.Setup(x => x.DisconnectAsync(true, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var fetcher = CreateFetcher(retryPolicy);
+        var fetcher = CreateFetcher();
 
         await Assert.ThrowsAsync<Exception>(() => fetcher.GetNewEmailsAsync("user@example.com", "token", DateTime.UtcNow, CancellationToken.None));
 
