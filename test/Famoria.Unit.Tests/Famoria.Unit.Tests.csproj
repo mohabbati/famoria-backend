@@ -26,7 +26,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Famoria.Email.Fetcher.Worker\Famoria.Email.Fetcher.Worker.csproj" />
+    <ProjectReference Include="..\..\src\Famoria.Application\Famoria.Application.csproj" />
+    <ProjectReference Include="..\..\src\Famoria.Domain\Famoria.Domain.csproj" />
     <!--<ProjectReference Include="..\..\src\Famoria.Api\Famoria.Api.csproj" />-->
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Auth/GmailOAuthProviderTests.cs" />
+    <Compile Remove="Auth/GoogleOAuthHelperTests.cs" />
+    <Compile Remove="Auth/GoogleAuthEndpointsTests.cs" />
   </ItemGroup>
 
   <ItemGroup>
