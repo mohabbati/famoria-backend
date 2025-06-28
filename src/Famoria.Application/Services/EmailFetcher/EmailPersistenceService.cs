@@ -20,13 +20,13 @@ public class EmailPersistenceService : IEmailPersistenceService
     private readonly ILogger<EmailPersistenceService> _logger;
 
     public EmailPersistenceService(
-        BlobContainerClient blobContainerClient,
+        BlobServiceClient blobServiceClient,
         IRepository<FamilyItem> repository,
         ILogger<EmailPersistenceService> logger)
     {
-        _blobContainerClient = blobContainerClient;
         _logger = logger;
         _repository = repository;
+        _blobContainerClient = blobServiceClient.GetBlobContainerClient("famoria");
     }
 
     public async Task<string> PersistAsync(string emlContent, string familyId, CancellationToken cancellationToken)

@@ -1,5 +1,3 @@
-using System.Reflection;
-
 using Famoria.Application;
 using Famoria.Email.Fetcher.Worker;
 using Famoria.Infrastructure;

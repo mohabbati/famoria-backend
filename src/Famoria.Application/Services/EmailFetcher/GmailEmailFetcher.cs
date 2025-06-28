@@ -50,7 +50,7 @@ public class GmailEmailFetcher : IEmailFetcher
     private async Task<string> RefreshAccessTokenAsync(string userEmail, CancellationToken cancellationToken)
     {
         var accounts = await _repository.GetAsync(
-            x => x.Provider == IntegrationProvider.Google && x.LinkedAccount == userEmail && x.IsActive,
+            x => true/*x.Provider == IntegrationProvider.Google && x.LinkedAccount == userEmail && x.IsActive*/,
             cancellationToken: cancellationToken);
         var account = accounts.FirstOrDefault() ?? throw new InvalidOperationException($"No linked Gmail account for {userEmail}");
         if (string.IsNullOrEmpty(account.RefreshToken))
@@ -62,7 +62,8 @@ public class GmailEmailFetcher : IEmailFetcher
             ["client_id"] = _clientId,
             ["client_secret"] = _clientSecret,
             ["refresh_token"] = refreshToken,
-            ["grant_type"] = "refresh_token"
+            ["grant_type"] = "refresh_token",
+            ["scope"] = "https://mail.google.com/"
         });
 
         using var response = await _httpClient.PostAsync("https://oauth2.googleapis.com/token", content, cancellationToken).ConfigureAwait(false);

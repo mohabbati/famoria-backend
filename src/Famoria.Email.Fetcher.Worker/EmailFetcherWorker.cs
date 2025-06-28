@@ -2,53 +2,50 @@ using Famoria.Domain.Enums;
 using Famoria.Application.Features.FetchEmails;
 using Famoria.Application.Interfaces;
 using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace Famoria.Email.Fetcher.Worker;
 
 public class EmailFetcherWorker : BackgroundService
 {
     private readonly ILogger<EmailFetcherWorker> _logger;
-    private readonly IMediator _mediator;
-    private readonly IConnectorService _connectorService;
-    private readonly IAesCryptoService _cryptoService;
-    private readonly TimeSpan _fetchInterval;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly TimeSpan _fetchInterval = TimeSpan.FromHours(1);
 
     public EmailFetcherWorker(
         ILogger<EmailFetcherWorker> logger,
-        IMediator mediator,
-        IConnectorService connectorService,
-        IAesCryptoService cryptoService,
-        TimeSpan? fetchInterval = null)
+        IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
-        _mediator = mediator;
-        _connectorService = connectorService;
-        _cryptoService = cryptoService;
-        _fetchInterval = fetchInterval ?? TimeSpan.FromHours(1);
+        _scopeFactory = scopeFactory;
     }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
+            using var scope = _scopeFactory.CreateScope();
+
+            var connectorService = scope.ServiceProvider.GetRequiredService<IConnectorService>();
+            var cryptoService = scope.ServiceProvider.GetRequiredService<IAesCryptoService>();
+            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
             foreach (var provider in Enum.GetValues<IntegrationProvider>())
             {
                 _logger.LogInformation("Processing {Provider} linked accounts", provider);
-                var linkedAccounts = await _connectorService.GetByAsync(provider, cancellationToken);
+                var linkedAccounts = await connectorService.GetByAsync(provider, cancellationToken);
 
                 foreach (var account in linkedAccounts)
                 {
                     if (cancellationToken.IsCancellationRequested) break;
                     try
                     {
-                        var decryptedAccessToken = _cryptoService.Decrypt(account.AccessToken);
+                        var decryptedAccessToken = cryptoService.Decrypt(account.AccessToken);
                         var command = new FetchEmailsCommand(
                             account.FamilyId,
                             account.LinkedAccount,
                             decryptedAccessToken,
                             account.LastFetchedAtUtc);
-                        var processedCount = await _mediator.Send(command, cancellationToken);
+                        var processedCount = await mediator.Send(command, cancellationToken);
                         _logger.LogInformation(
                             "Fetched {Count} emails for {Email} from {Provider} at {Time}",
                             processedCount,
@@ -57,7 +54,7 @@ public class EmailFetcherWorker : BackgroundService
                             DateTimeOffset.Now);
                         if (processedCount > 0)
                         {
-                            await _connectorService.UpdateLastFetchedAsync(
+                            await connectorService.UpdateLastFetchedAsync(
                                 provider,
                                 account.LinkedAccount,
                                 DateTime.UtcNow,

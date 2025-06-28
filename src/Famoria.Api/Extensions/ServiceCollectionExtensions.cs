@@ -81,7 +81,9 @@ public static class ServiceCollectionExtensions
                 options.Scope.Clear();
                 options.Scope.Add("openid");
                 options.Scope.Add("email");
+                //options.Scope.Add("https://mail.google.com/");
                 options.Scope.Add("https://www.googleapis.com/auth/gmail.readonly");
+                //options.Scope.Add("https://www.googleapis.com/auth/gmail.modify");
                 options.AccessType = "offline";
                 options.SaveTokens = true;
                 options.UsePkce = true;

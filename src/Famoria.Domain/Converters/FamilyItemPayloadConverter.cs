@@ -8,14 +8,14 @@ public class FamilyItemPayloadConverter : JsonConverter<FamilyItemPayload>
     public override FamilyItemPayload? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var jsonDoc = JsonDocument.ParseValue(ref reader);
-        if (!jsonDoc.RootElement.TryGetProperty("Type", out JsonElement typeProp))
+        if (!jsonDoc.RootElement.TryGetProperty("source", out JsonElement typeProp))
             throw new JsonException("Missing Type discriminator.");
 
         var json = jsonDoc.RootElement.GetRawText();
         return typeProp.GetString()?.ToLowerInvariant() switch
         {
-            "email" => JsonSerializer.Deserialize<EmailPayload>(json, FamoriaJsonContext.Default.EmailPayload),
-            "calendar" => JsonSerializer.Deserialize<CalendarPayload>(json, FamoriaJsonContext.Default.CalendarPayload),
+            "email" => JsonSerializer.Deserialize(json, FamoriaJsonContext.Default.EmailPayload),
+            "calendar" => JsonSerializer.Deserialize(json, FamoriaJsonContext.Default.CalendarPayload),
             _ => throw new JsonException($"Unknown payload type: {typeProp.GetString()}")
         };
     }

@@ -1,12 +1,13 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Azure.Identity;
 using CosmosKit;
 using Famoria.Domain.Converters;
 using Famoria.Domain.Entities;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Famoria.Infrastructure;
 
@@ -57,12 +58,16 @@ public static class ConfigureInfrastructure
 
     public static IHostApplicationBuilder AddBlobContainer(this IHostApplicationBuilder builder)
     {
-        builder.AddAzureBlobContainerClient("blob-container",
+        builder.AddAzureBlobContainerClient("blobs",
             blobsSettings =>
             {
                 blobsSettings.DisableTracing = false;
                 blobsSettings.Credential = new DefaultAzureCredential();
-                blobsSettings.BlobContainerName = builder.Configuration["BlobContainerSettings:ContainerName"];
+            },
+            clientBuilder =>
+            {
+                clientBuilder.ConfigureOptions(
+                    options => options.Diagnostics.ApplicationId = "email-fetcher-worker");
             });
 
         return builder;
