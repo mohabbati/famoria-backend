@@ -1,8 +1,16 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using MailKit.Search;
-using MailKit.Security;
+using System.Net;
+using System.Net.Http.Headers;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Gmail.v1;
+using Google.Apis.Gmail.v1.Data;
+using Google.Apis.Http;
+using GoogleHttpClientFactory = Google.Apis.Http.IHttpClientFactory;
+using NetHttpClientFactory = System.Net.Http.IHttpClientFactory;
+using Google.Apis.Services;
+using Google;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 
@@ -11,26 +19,26 @@ namespace Famoria.Application.Services;
 public class GmailEmailFetcher : IEmailFetcher
 {
     private readonly ILogger<GmailEmailFetcher> _logger;
-    private readonly IImapClientWrapper _imapClient;
     private readonly IRepository<UserLinkedAccount> _repository;
     private readonly IAesCryptoService _cryptoService;
     private readonly HttpClient _httpClient;
+    private readonly GoogleHttpClientFactory? _gmailHttpClientFactory;
     private readonly string _clientId;
     private readonly string _clientSecret;
 
     public GmailEmailFetcher(
         ILogger<GmailEmailFetcher> logger,
-        IImapClientWrapper imapClient,
         IRepository<UserLinkedAccount> repository,
         IAesCryptoService cryptoService,
         HttpClient httpClient,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        GoogleHttpClientFactory? gmailHttpClientFactory = null)
     {
         _logger = logger;
-        _imapClient = imapClient;
         _repository = repository;
         _cryptoService = cryptoService;
         _httpClient = httpClient;
+        _gmailHttpClientFactory = gmailHttpClientFactory;
         _clientId = configuration["Auth:Google:ClientId"] ?? throw new InvalidOperationException("Google client id missing");
         _clientSecret = configuration["Auth:Google:ClientSecret"] ?? throw new InvalidOperationException("Google client secret missing");
     }
@@ -71,46 +79,69 @@ public class GmailEmailFetcher : IEmailFetcher
 
     public async Task<List<string>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken)
     {
-        var ct = cancellationToken;
-        var emlList = new List<string>();
+        var emails = new List<string>();
         var correlationId = Guid.NewGuid().ToString();
-        var connected = false;
         try
         {
-            await _imapClient.ConnectAsync("imap.gmail.com", 993, SecureSocketOptions.SslOnConnect, ct).ConfigureAwait(false);
-            connected = true;
-            var sasl = new SaslMechanismOAuth2(userEmail, accessToken);
+            var credential = GoogleCredential.FromAccessToken(accessToken);
+            var initializer = new BaseClientService.Initializer
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = "Famoria.EmailFetcher",
+            };
+            if (_gmailHttpClientFactory is not null)
+            {
+                initializer.HttpClientFactory = _gmailHttpClientFactory;
+            }
+
+            using var service = new GmailService(initializer);
+
+            var sinceSeconds = new DateTimeOffset(since).ToUnixTimeSeconds();
+            var listRequest = service.Users.Messages.List("me");
+            listRequest.LabelIds = new[] { "INBOX" };
+            // Exclude promotional, social, updates and forum categories
+            listRequest.Q = $"after:{sinceSeconds} -category:promotions -category:social -category:updates -category:forums";
+
+            ListMessagesResponse list;
             try
             {
-                await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+                list = await listRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (AuthenticationException)
+            catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.Unauthorized)
             {
-                accessToken = await RefreshAccessTokenAsync(userEmail, ct).ConfigureAwait(false);
-                sasl = new SaslMechanismOAuth2(userEmail, accessToken);
-                await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+                accessToken = await RefreshAccessTokenAsync(userEmail, cancellationToken).ConfigureAwait(false);
+                credential = GoogleCredential.FromAccessToken(accessToken);
+                initializer.HttpClientInitializer = credential;
+                using var retryService = new GmailService(initializer);
+                list = await retryService.Users.Messages.List("me").ExecuteAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            var inbox = await _imapClient.GetInboxAsync(ct).ConfigureAwait(false);
+            if (list.Messages == null) return emails;
 
-            // Only fetch emails received after 'since'
-            var query = SearchQuery.NotSeen.Or(SearchQuery.Recent).Or(SearchQuery.DeliveredAfter(since));
-            var uids = await _imapClient.SearchAsync(inbox, query, ct).ConfigureAwait(false);
-
-            foreach (var uid in uids)
+            foreach (var msg in list.Messages)
             {
                 try
                 {
-                    var message = await _imapClient.GetMessageAsync(inbox, uid, ct).ConfigureAwait(false);
-                    using var stream = new MemoryStream();
-                    await message.WriteToAsync(stream, ct).ConfigureAwait(false);
-                    var emlContent = Encoding.UTF8.GetString(stream.ToArray());
-                    emlList.Add(emlContent);
+                    var getRequest = service.Users.Messages.Get("me", msg.Id);
+                    getRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Raw;
+                    var rawResponse = await getRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+
+                    if (!string.IsNullOrEmpty(rawResponse.Raw))
+                    {
+                        var padded = rawResponse.Raw.Replace('-', '+').Replace('_', '/');
+                        switch (padded.Length % 4)
+                        {
+                            case 2: padded += "=="; break;
+                            case 3: padded += "="; break;
+                        }
+                        var bytes = Convert.FromBase64String(padded);
+                        emails.Add(Encoding.UTF8.GetString(bytes));
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to fetch or process message UID {Uid}: {Message} (CorrelationId: {CorrelationId})",
-                        uid, ex.Message, correlationId);
+                    _logger.LogError(ex, "Failed to fetch or process message {MessageId}: {Message} (CorrelationId: {CorrelationId})",
+                        msg.Id, ex.Message, correlationId);
                 }
             }
         }
@@ -120,23 +151,7 @@ public class GmailEmailFetcher : IEmailFetcher
                 userEmail, ex.Message, correlationId);
             throw;
         }
-        finally
-        {
-            if (connected)
-            {
-                try
-                {
-                    await _imapClient.DisconnectAsync(true, ct).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to disconnect IMAP client (CorrelationId: {CorrelationId})", correlationId);
-                }
-            }
 
-            _imapClient.Dispose();
-        }
-
-        return emlList;
+        return emails;
     }
 }

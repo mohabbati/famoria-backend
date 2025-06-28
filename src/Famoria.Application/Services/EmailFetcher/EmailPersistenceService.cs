@@ -5,7 +5,9 @@ using Famoria.Domain.Common;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 using MimeKit;
 
@@ -34,9 +36,15 @@ public class EmailPersistenceService : IEmailPersistenceService
         try
         {
             var mime = MimeMessage.Load(new MemoryStream(Encoding.UTF8.GetBytes(emlContent)));
+
             var subject = mime.Subject ?? string.Empty;
-            var sender = mime.From.Mailboxes.FirstOrDefault()?.Address ?? string.Empty;
-            var receivedAt = mime.Date.UtcDateTime;
+            var from = mime.From.Mailboxes.FirstOrDefault();
+            var senderName = from?.Name ?? string.Empty;
+            var senderEmail = from?.Address ?? string.Empty;
+            var receivedAt = mime.Date;
+
+            var toList = mime.To.Mailboxes.Take(20).Select(m => m.Address).ToList();
+            var ccList = mime.Cc.Mailboxes.Take(20).Select(m => m.Address).ToList();
 
             // Upload original .eml
             var emlBlobPath = $"{familyId}/email/{itemId}/original.eml";
@@ -44,7 +52,7 @@ public class EmailPersistenceService : IEmailPersistenceService
             await emlBlobClient.UploadAsync(new BinaryData(emlContent), overwrite: true, cancellationToken).ConfigureAwait(false);
 
             // Upload attachments
-            var attachmentBlobPaths = new List<string>();
+            var attachments = new List<AttachmentInfo>();
             foreach (var attachment in mime.Attachments)
             {
                 if (attachment is MimePart part)
@@ -54,9 +62,10 @@ public class EmailPersistenceService : IEmailPersistenceService
                     var attachmentBlobClient = _blobContainerClient.GetBlobClient(attachmentBlobPath);
                     await using var stream = new MemoryStream();
                     await part.Content.DecodeToAsync(stream, cancellationToken).ConfigureAwait(false);
+                    var size = stream.Length;
                     stream.Position = 0;
                     await attachmentBlobClient.UploadAsync(stream, overwrite: true, cancellationToken).ConfigureAwait(false);
-                    attachmentBlobPaths.Add(attachmentBlobPath);
+                    attachments.Add(new AttachmentInfo(fileName, part.ContentType.MimeType, size, attachmentBlobPath));
                 }
             }
 
@@ -65,9 +74,16 @@ public class EmailPersistenceService : IEmailPersistenceService
             {
                 ReceivedAt = receivedAt,
                 Subject = subject,
-                Sender = sender,
+                SenderName = senderName,
+                SenderEmail = senderEmail,
+                To = toList.Count > 0 ? toList : null,
+                Cc = ccList.Count > 0 ? ccList : null,
                 EmlBlobPath = emlBlobPath,
-                AttachmentBlobPaths = attachmentBlobPaths
+                Attachments = attachments.Count > 0 ? attachments : null,
+                ProviderMessageId = null,
+                ProviderConversationId = null,
+                ProviderSyncToken = null,
+                Labels = null
             };
             var familyItem = new FamilyItem
             {
