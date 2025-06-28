@@ -1,10 +1,23 @@
+using Famoria.Application.Interfaces;
+using Famoria.Application.Models;
+using Famoria.Domain.Entities;
+using Famoria.Domain.Enums;
+using MailKit;
+using MailKit.Search;
+using MailKit.Security;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using MimeKit;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using MailKit.Search;
-using MailKit.Security;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Famoria.Application.Services;
 
@@ -69,16 +82,15 @@ public class GmailEmailFetcher : IEmailFetcher
         return tokenResponse.AccessToken;
     }
 
-    public async Task<List<string>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken)
+    public async Task<List<FetchedEmailData>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken)
     {
         var ct = cancellationToken;
-        var emlList = new List<string>();
+        var fetchedEmails = new List<FetchedEmailData>();
         var correlationId = Guid.NewGuid().ToString();
-        var connected = false;
+        // No 'connected' variable needed as we rely on _imapClient's state via wrapper methods for connect/disconnect
         try
         {
             await _imapClient.ConnectAsync("imap.gmail.com", 993, SecureSocketOptions.SslOnConnect, ct).ConfigureAwait(false);
-            connected = true;
             var sasl = new SaslMechanismOAuth2(userEmail, accessToken);
             try
             {
@@ -86,16 +98,26 @@ public class GmailEmailFetcher : IEmailFetcher
             }
             catch (AuthenticationException)
             {
+                _logger.LogInformation("IMAP Authentication failed for {UserEmail}, attempting token refresh.", userEmail);
                 accessToken = await RefreshAccessTokenAsync(userEmail, ct).ConfigureAwait(false);
                 sasl = new SaslMechanismOAuth2(userEmail, accessToken);
                 await _imapClient.AuthenticateAsync(sasl, ct).ConfigureAwait(false);
+                _logger.LogInformation("IMAP re-authentication successful for {UserEmail} after token refresh.", userEmail);
             }
 
             var inbox = await _imapClient.GetInboxAsync(ct).ConfigureAwait(false);
+            // Assuming GetInboxAsync opens the folder or it's opened by SearchAsync/GetMessageAsync implicitly by wrapper.
+            // If not, an OpenAsync call would be needed on inbox if the wrapper exposed it.
+            // MailKit typically requires folder to be opened before search/fetch. The wrapper hides this detail.
 
-            // Only fetch emails received after 'since'
             var query = SearchQuery.NotSeen.Or(SearchQuery.Recent).Or(SearchQuery.DeliveredAfter(since));
             var uids = await _imapClient.SearchAsync(inbox, query, ct).ConfigureAwait(false);
+
+            if (!uids.Any())
+            {
+                _logger.LogInformation("No new emails found for {UserEmail} since {SinceDate}.", userEmail, since);
+                return fetchedEmails;
+            }
 
             foreach (var uid in uids)
             {
@@ -105,7 +127,25 @@ public class GmailEmailFetcher : IEmailFetcher
                     using var stream = new MemoryStream();
                     await message.WriteToAsync(stream, ct).ConfigureAwait(false);
                     var emlContent = Encoding.UTF8.GetString(stream.ToArray());
-                    emlList.Add(emlContent);
+
+                    // Attempt to get Gmail specific data from headers
+                    string? providerMessageId = message.Headers["X-GM-MSGID"];
+                    string? providerConversationId = message.Headers["X-GM-THRID"];
+                    string? providerSyncToken = null; // Gmail HistoryId is not available via headers
+
+                    List<string>? labels = message.Headers
+                                               .Where(h => h.Field.Equals("X-GM-LABELS", StringComparison.OrdinalIgnoreCase))
+                                               .Select(h => h.Value)
+                                               .ToList();
+                    if (!labels.Any()) labels = null;
+
+
+                    fetchedEmails.Add(new FetchedEmailData(
+                        emlContent,
+                        providerMessageId,
+                        providerConversationId,
+                        providerSyncToken,
+                        labels));
                 }
                 catch (Exception ex)
                 {
@@ -113,6 +153,7 @@ public class GmailEmailFetcher : IEmailFetcher
                         uid, ex.Message, correlationId);
                 }
             }
+            // Assuming inbox is closed by DisconnectAsync or similar by the wrapper if necessary
         }
         catch (Exception ex)
         {
@@ -122,21 +163,19 @@ public class GmailEmailFetcher : IEmailFetcher
         }
         finally
         {
-            if (connected)
+            // The _imapClient wrapper's DisconnectAsync should handle the actual disconnect.
+            // No need to check _imapClient.IsConnected directly if the wrapper manages it.
+            try
             {
-                try
-                {
-                    await _imapClient.DisconnectAsync(true, ct).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to disconnect IMAP client (CorrelationId: {CorrelationId})", correlationId);
-                }
+                await _imapClient.DisconnectAsync(true, ct).ConfigureAwait(false);
             }
-
-            _imapClient.Dispose();
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to disconnect IMAP client (CorrelationId: {CorrelationId})", correlationId);
+            }
+            // _imapClient is IDisposable, its disposal should be handled by DI if it's registered as such,
+            // or manually if this class creates/owns it (which it doesn't, it's injected).
         }
-
-        return emlList;
+        return fetchedEmails;
     }
 }

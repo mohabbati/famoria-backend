@@ -1,144 +1,208 @@
-using System.Text;
-
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-
-using Famoria.Application.Models;
+using CosmosKit; // For IRepository
+using Famoria.Application.Interfaces; // For IEmailPersistenceService (though testing concrete class)
 using Famoria.Application.Services;
 using Famoria.Domain.Entities;
-
-using Microsoft.Azure.Cosmos;
+using Famoria.Domain.Enums; // For FamilyItemSource
 using Microsoft.Extensions.Logging;
-
 using MimeKit;
-
 using Moq;
+using Xunit; // For Fact, Assert
+using System; // For Exception, BinaryData, DateTimeOffset
+using System.IO; // For MemoryStream
+using System.Threading; // For CancellationToken
+using System.Threading.Tasks; // For Task
+using System.Collections.Generic; // For List
+using System.Linq; // For Linq extensions like Any()
 
 namespace Famoria.Unit.Tests.EmailFetcher;
 
 public class EmailPersistenceServiceTests
 {
     private readonly Mock<BlobContainerClient> _blobContainerMock = new();
-    private readonly Mock<CosmosClient> _cosmosClientMock = new();
+    private readonly Mock<IRepository<FamilyItem>> _repositoryMock = new(); // Changed from CosmosClient
     private readonly Mock<ILogger<EmailPersistenceService>> _loggerMock = new();
     private readonly Mock<BlobClient> _blobClientMock = new();
-    private readonly Mock<Database> _dbMock = new();
-    private readonly Mock<Container> _containerMock = new();
-    private readonly CosmosDbSettings _settings = new() { DatabaseId = "FamoriaDb" };
+
+    // Removed Cosmos specific mocks like _dbMock, _containerMock, _settings
 
     private EmailPersistenceService CreateService() =>
-        new EmailPersistenceService(_blobContainerMock.Object, _cosmosClientMock.Object, _settings, _loggerMock.Object);
+        new(_blobContainerMock.Object, _repositoryMock.Object, _loggerMock.Object);
 
-    private string CreateEmlWithAttachment(out string attachmentName)
+    private string CreateTestEml(
+        string fromName, string fromAddress,
+        string toAddress, string ccAddress,
+        string subject, string body,
+        DateTimeOffset date,
+        string attachmentFileName, byte[] attachmentContent, string attachmentMimeType,
+        out string actualAttachmentName)
     {
         var message = new MimeMessage();
-        message.From.Add(new MailboxAddress("Sender Name", "sender@example.com"));
-        message.Subject = "Test Subject";
-        message.Body = new TextPart("plain") { Text = "This is the body." };
-        var attachment = new MimePart("application", "octet-stream")
+        message.From.Add(new MailboxAddress(fromName, fromAddress));
+        if (!string.IsNullOrEmpty(toAddress))
+            message.To.Add(new MailboxAddress("To Recipient", toAddress));
+        if (!string.IsNullOrEmpty(ccAddress))
+            message.Cc.Add(new MailboxAddress("CC Recipient", ccAddress));
+        message.Subject = subject;
+        message.Date = date;
+
+        var textPart = new TextPart("plain") { Text = body };
+
+        if (attachmentFileName != null && attachmentContent != null)
         {
-            Content = new MimeContent(new MemoryStream(Encoding.UTF8.GetBytes("Hello world"))),
-            ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
-            FileName = "attachment.txt"
-        };
-        var multipart = new Multipart("mixed") { message.Body, attachment };
-        message.Body = multipart;
-        attachmentName = attachment.FileName;
+            var attachment = new MimePart(attachmentMimeType)
+            {
+                Content = new MimeContent(new MemoryStream(attachmentContent)),
+                ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
+                FileName = attachmentFileName
+            };
+            var multipart = new Multipart("mixed") { textPart, attachment };
+            message.Body = multipart;
+            actualAttachmentName = attachment.FileName;
+        }
+        else
+        {
+            message.Body = textPart;
+            actualAttachmentName = null!;
+        }
+
         using var ms = new MemoryStream();
         message.WriteTo(ms);
         return Encoding.UTF8.GetString(ms.ToArray());
     }
 
+
     [Fact]
-    public async Task PersistAsync_PersistsEmlAndMetadata_ReturnsItemId()
+    public async Task PersistAsync_PopulatesAllFieldsCorrectly_AndReturnsItemId()
     {
-        var emlContent = CreateEmlWithAttachment(out var attachmentName);
-        var familyId = "fam123";
+        // Arrange
+        var familyId = "fam789";
+        var fromName = "Test Sender";
+        var fromAddress = "sender@test.com";
+        var toAddress = "receiver@test.com";
+        var ccAddress = "cc.receiver@test.com";
+        var subject = "Detailed Test Email";
+        var body = "This is a more detailed email body for testing.";
+        var date = new DateTimeOffset(2023, 10, 26, 10, 30, 0, TimeSpan.FromHours(-5));
+        var attachmentFileName = "testDoc.pdf";
+        var attachmentContent = Encoding.UTF8.GetBytes("This is a test PDF content.");
+        var attachmentMimeType = "application/pdf";
+
+        var emlContent = CreateTestEml(fromName, fromAddress, toAddress, ccAddress, subject, body, date, attachmentFileName, attachmentContent, attachmentMimeType, out var actualAttachmentName);
+
+        // Aligning with user feedback: these provider-specific fields from Gmail IMAP are expected to be null.
+        string? providerMsgId = null;
+        string? providerConvId = null;
+        string? providerSyncToken = null;
+        var labels = new List<string> { "Inbox", "Important" }; // Labels can still be fetched from X-GM-LABELS
+
         _blobContainerMock.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(_blobClientMock.Object);
-        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<BinaryData>(), true, It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<Azure.Response<BlobContentInfo>>());
-        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<Azure.Response<BlobContentInfo>>());
-        _cosmosClientMock.Setup(x => x.GetDatabase(It.IsAny<string>())).Returns(_dbMock.Object);
-        _dbMock.Setup(x => x.GetContainer(It.IsAny<string>())).Returns(_containerMock.Object);
-        _containerMock.Setup(x => x.CreateItemAsync(
-            It.IsAny<FamilyItem>(),
-            It.IsAny<PartitionKey>(),
-            null,
-            It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<ItemResponse<FamilyItem>>());
+        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>()); // For both EML and attachment
+
+        FamilyItem capturedFamilyItem = null!;
+        _repositoryMock.Setup(x => x.AddAsync(It.IsAny<FamilyItem>(), It.IsAny<CancellationToken>()))
+            .Callback<FamilyItem, CancellationToken>((fi, ct) => capturedFamilyItem = fi)
+            .Returns(Task.CompletedTask);
 
         var service = CreateService();
-        var itemId = await service.PersistAsync(emlContent, familyId, CancellationToken.None);
 
+        // Act
+        var itemId = await service.PersistAsync(emlContent, familyId, providerMsgId, providerConvId, providerSyncToken, labels, CancellationToken.None);
+
+        // Assert
         Assert.False(string.IsNullOrWhiteSpace(itemId));
-        _blobContainerMock.Verify(x => x.GetBlobClient(It.Is<string>(s => s.Contains($"{familyId}/email/{itemId}/original.eml"))), Times.Once);
-        _blobClientMock.Verify(x => x.UploadAsync(It.IsAny<BinaryData>(), true, It.IsAny<CancellationToken>()), Times.Once);
-        _containerMock.Verify(x => x.CreateItemAsync(
-            It.Is<FamilyItem>(f => f.Id == itemId && f.FamilyId == familyId && f.Source == Domain.Enums.FamilyItemSource.Email),
-            It.Is<PartitionKey>(pk => pk.ToString() == $"[\"{familyId}\"]"),
-            null,
-            It.IsAny<CancellationToken>()), Times.Once);
+        Assert.NotNull(capturedFamilyItem);
+        Assert.Equal(itemId, capturedFamilyItem.Id);
+        Assert.Equal(familyId, capturedFamilyItem.FamilyId);
+        Assert.Equal(FamilyItemSource.Email, capturedFamilyItem.Source);
+
+        var payload = Assert.IsType<EmailPayload>(capturedFamilyItem.Payload);
+        Assert.Equal(date, payload.ReceivedAt);
+        Assert.Equal(subject, payload.Subject);
+        Assert.Equal(fromName, payload.SenderName);
+        Assert.Equal(fromAddress, payload.SenderEmail);
+        Assert.Contains(toAddress, payload.To!);
+        Assert.Contains(ccAddress, payload.Cc!);
+        Assert.Equal($"{familyId}/email/{itemId}/original.eml", payload.EmlBlobPath);
+
+        Assert.NotNull(payload.Attachments);
+        Assert.Single(payload.Attachments);
+        var attachmentInfo = payload.Attachments![0];
+        Assert.Equal(actualAttachmentName, attachmentInfo.FileName);
+        Assert.Equal(attachmentMimeType, attachmentInfo.MimeType);
+        Assert.Equal(attachmentContent.Length, attachmentInfo.SizeBytes);
+        Assert.Equal($"{familyId}/email/{itemId}/attachments/{actualAttachmentName}", attachmentInfo.BlobPath);
+
+        Assert.Equal(providerMsgId, payload.ProviderMessageId);
+        Assert.Equal(providerConvId, payload.ProviderConversationId);
+        Assert.Equal(providerSyncToken, payload.ProviderSyncToken);
+        Assert.Equal(labels, payload.Labels);
+
+        _blobContainerMock.Verify(x => x.GetBlobClient(It.Is<string>(s => s == $"{familyId}/email/{itemId}/original.eml")), Times.Once);
+        _blobContainerMock.Verify(x => x.GetBlobClient(It.Is<string>(s => s == $"{familyId}/email/{itemId}/attachments/{actualAttachmentName}")), Times.Once);
+        _blobClientMock.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Exactly(2)); // EML + 1 attachment
+        _repositoryMock.Verify(x => x.AddAsync(capturedFamilyItem, It.IsAny<CancellationToken>()), Times.Once);
     }
+
 
     [Fact]
     public async Task PersistAsync_PersistsAttachmentsWithCorrectPaths()
     {
-        var emlContent = CreateEmlWithAttachment(out var attachmentName);
+        var emlContent = CreateTestEml("s","s@s.s","t@t.t",null,"Sub","Body",DateTimeOffset.Now,"att.txt", new byte[]{1,2,3},"text/plain", out var attachmentName);
         var familyId = "fam123";
         var capturedPaths = new List<string>();
         _blobContainerMock.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(_blobClientMock.Object);
-        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<BinaryData>(), true, It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<Azure.Response<BlobContentInfo>>());
-        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>())).Callback<object, bool, CancellationToken>((stream, overwrite, ct) => { }).ReturnsAsync(Mock.Of<Azure.Response<BlobContentInfo>>());
-        _cosmosClientMock.Setup(x => x.GetDatabase(It.IsAny<string>())).Returns(_dbMock.Object);
-        _dbMock.Setup(x => x.GetContainer(It.IsAny<string>())).Returns(_containerMock.Object);
-        _containerMock.Setup(x => x.CreateItemAsync(
-            It.IsAny<FamilyItem>(),
-            It.IsAny<PartitionKey>(),
-            null,
-            It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<ItemResponse<FamilyItem>>());
+         _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
+        _repositoryMock.Setup(x => x.AddAsync(It.IsAny<FamilyItem>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         _blobContainerMock.Setup(x => x.GetBlobClient(It.IsAny<string>())).Callback<string>(path => capturedPaths.Add(path)).Returns(_blobClientMock.Object);
 
         var service = CreateService();
-        var itemId = await service.PersistAsync(emlContent, familyId, CancellationToken.None);
+        var itemId = await service.PersistAsync(emlContent, familyId, null, null, null, null, CancellationToken.None);
 
-        Assert.Contains(capturedPaths, p => p.Contains($"{familyId}/email/{itemId}/attachments/{attachmentName}"));
+        Assert.Contains(capturedPaths, p => p == $"{familyId}/email/{itemId}/attachments/{attachmentName}");
     }
 
     [Fact]
     public async Task PersistAsync_HandlesNoAttachments()
     {
-        var message = new MimeMessage();
-        message.From.Add(new MailboxAddress("Sender Name", "sender@example.com"));
-        message.Subject = "No Attachments";
-        message.Body = new TextPart("plain") { Text = "Body only." };
-        using var ms = new MemoryStream();
-        message.WriteTo(ms);
-        var emlContent = Encoding.UTF8.GetString(ms.ToArray());
+        var emlContent = CreateTestEml("s","s@s.s","t@t.t",null,"Sub","Body",DateTimeOffset.Now, null!, null!, null!,out _);
         var familyId = "fam123";
         _blobContainerMock.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(_blobClientMock.Object);
-        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<BinaryData>(), true, It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<Azure.Response<BlobContentInfo>>());
-        _cosmosClientMock.Setup(x => x.GetDatabase(It.IsAny<string>())).Returns(_dbMock.Object);
-        _dbMock.Setup(x => x.GetContainer(It.IsAny<string>())).Returns(_containerMock.Object);
-        _containerMock.Setup(x => x.CreateItemAsync(
-            It.IsAny<FamilyItem>(),
-            It.IsAny<PartitionKey>(),
-            null,
-            It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<ItemResponse<FamilyItem>>());
+        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>()); // This will be for the EML itself
+        _repositoryMock.Setup(x => x.AddAsync(It.IsAny<FamilyItem>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        FamilyItem persistedItem = null!;
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<FamilyItem>(), It.IsAny<CancellationToken>()))
+            .Callback<FamilyItem, CancellationToken>((item, token) => persistedItem = item)
+            .Returns(Task.CompletedTask);
 
         var service = CreateService();
-        var itemId = await service.PersistAsync(emlContent, familyId, CancellationToken.None);
+        var itemId = await service.PersistAsync(emlContent, familyId, null, null, null, null, CancellationToken.None);
 
-        _blobClientMock.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Never);
+        var payload = Assert.IsType<EmailPayload>(persistedItem.Payload);
+        Assert.Null(payload.Attachments); // Or Assert.Empty if initialized to empty list
+
+        // Verify EML upload happened once, and no attachment uploads
+        _blobContainerMock.Verify(x => x.GetBlobClient(It.Is<string>(s => s.EndsWith("original.eml"))), Times.Once);
+        _blobContainerMock.Verify(x => x.GetBlobClient(It.Is<string>(s => s.Contains("/attachments/"))), Times.Never);
     }
 
     [Fact]
     public async Task PersistAsync_ThrowsAndLogs_OnBlobError()
     {
-        var emlContent = CreateEmlWithAttachment(out _);
+        var emlContent = CreateTestEml("s","s@s.s","t@t.t",null,"Sub","Body",DateTimeOffset.Now,"att.txt", new byte[]{1,2,3},"text/plain", out _);
         var familyId = "fam123";
         _blobContainerMock.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(_blobClientMock.Object);
-        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<BinaryData>(), true, It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Blob error"));
+        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Blob error"));
         var service = CreateService();
 
-        await Assert.ThrowsAsync<Exception>(() => service.PersistAsync(emlContent, familyId, CancellationToken.None));
+        await Assert.ThrowsAsync<Exception>(() => service.PersistAsync(emlContent, familyId, null, null, null, null, CancellationToken.None));
         _loggerMock.Verify(x => x.Log(
             LogLevel.Error,
             It.IsAny<EventId>(),
@@ -148,22 +212,18 @@ public class EmailPersistenceServiceTests
     }
 
     [Fact]
-    public async Task PersistAsync_ThrowsAndLogs_OnCosmosError()
+    public async Task PersistAsync_ThrowsAndLogs_OnRepositoryError() // Changed from CosmosError
     {
-        var emlContent = CreateEmlWithAttachment(out _);
+        var emlContent = CreateTestEml("s","s@s.s","t@t.t",null,"Sub","Body",DateTimeOffset.Now,"att.txt", new byte[]{1,2,3},"text/plain", out _);
         var familyId = "fam123";
         _blobContainerMock.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(_blobClientMock.Object);
-        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<BinaryData>(), true, It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<Azure.Response<BlobContentInfo>>());
-        _cosmosClientMock.Setup(x => x.GetDatabase(It.IsAny<string>())).Returns(_dbMock.Object);
-        _dbMock.Setup(x => x.GetContainer(It.IsAny<string>())).Returns(_containerMock.Object);
-        _containerMock.Setup(x => x.CreateItemAsync(
-            It.IsAny<FamilyItem>(),
-            It.IsAny<PartitionKey>(),
-            null,
-            It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Cosmos error"));
+        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
+        _repositoryMock.Setup(x => x.AddAsync(It.IsAny<FamilyItem>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Repository error"));
         var service = CreateService();
 
-        await Assert.ThrowsAsync<Exception>(() => service.PersistAsync(emlContent, familyId, CancellationToken.None));
+        await Assert.ThrowsAsync<Exception>(() => service.PersistAsync(emlContent, familyId, null, null, null, null, CancellationToken.None));
         _loggerMock.Verify(x => x.Log(
             LogLevel.Error,
             It.IsAny<EventId>(),
@@ -175,14 +235,15 @@ public class EmailPersistenceServiceTests
     [Fact]
     public async Task PersistAsync_Throws_OnCancellation()
     {
-        var emlContent = CreateEmlWithAttachment(out _);
+        var emlContent = CreateTestEml("s","s@s.s","t@t.t",null,"Sub","Body",DateTimeOffset.Now,"att.txt", new byte[]{1,2,3},"text/plain", out _);
         var familyId = "fam123";
         var cts = new CancellationTokenSource();
         cts.Cancel();
         _blobContainerMock.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(_blobClientMock.Object);
-        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<BinaryData>(), true, It.IsAny<CancellationToken>())).ThrowsAsync(new OperationCanceledException());
+        // Simulate cancellation during blob upload
+        _blobClientMock.Setup(x => x.UploadAsync(It.IsAny<Stream>(), true, cts.Token)).ThrowsAsync(new OperationCanceledException());
         var service = CreateService();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.PersistAsync(emlContent, familyId, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.PersistAsync(emlContent, familyId, null, null, null, null, cts.Token));
     }
 }

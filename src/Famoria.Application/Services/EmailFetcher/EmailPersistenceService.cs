@@ -5,9 +5,10 @@ using Famoria.Domain.Common;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
 using Microsoft.Extensions.Logging;
-using System.Text;
-
 using MimeKit;
+using System.Text;
+using System.Globalization; // Added for DateTimeOffset parsing
+using System.Collections.Generic; // Added for List<string>
 
 namespace Famoria.Application.Services;
 
@@ -27,36 +28,60 @@ public class EmailPersistenceService : IEmailPersistenceService
         _repository = repository;
     }
 
-    public async Task<string> PersistAsync(string emlContent, string familyId, CancellationToken cancellationToken)
+    public async Task<string> PersistAsync(
+        string emlContent,
+        string familyId,
+        string? providerMessageId,
+        string? providerConversationId,
+        string? providerSyncToken,
+        List<string>? labels,
+        CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
         var itemId = IdFactory.NewGuidId();
         try
         {
-            var mime = MimeMessage.Load(new MemoryStream(Encoding.UTF8.GetBytes(emlContent)));
+            using var emlStream = new MemoryStream(Encoding.UTF8.GetBytes(emlContent));
+            var mime = MimeMessage.Load(emlStream);
+            emlStream.Position = 0; // Reset stream position for blob upload
+
             var subject = mime.Subject ?? string.Empty;
-            var sender = mime.From.Mailboxes.FirstOrDefault()?.Address ?? string.Empty;
-            var receivedAt = mime.Date.UtcDateTime;
+            var senderMailbox = mime.From.Mailboxes.FirstOrDefault();
+            var senderName = senderMailbox?.Name ?? string.Empty;
+            var senderEmail = senderMailbox?.Address ?? string.Empty;
+
+            // Parse Date header to DateTimeOffset, preserving offset
+            DateTimeOffset receivedAt = mime.Date; // MimeKit.MimeMessage.Date is already DateTimeOffset
+
+            var toRecipients = mime.To.Mailboxes.Select(mb => mb.Address).Take(20).ToList();
+            var ccRecipients = mime.Cc.Mailboxes.Select(mb => mb.Address).Take(20).ToList();
 
             // Upload original .eml
             var emlBlobPath = $"{familyId}/email/{itemId}/original.eml";
             var emlBlobClient = _blobContainerClient.GetBlobClient(emlBlobPath);
-            await emlBlobClient.UploadAsync(new BinaryData(emlContent), overwrite: true, cancellationToken).ConfigureAwait(false);
+            await emlBlobClient.UploadAsync(emlStream, overwrite: true, cancellationToken).ConfigureAwait(false);
 
             // Upload attachments
-            var attachmentBlobPaths = new List<string>();
+            var attachments = new List<AttachmentInfo>();
             foreach (var attachment in mime.Attachments)
             {
                 if (attachment is MimePart part)
                 {
                     var fileName = part.FileName ?? IdFactory.NewGuidId();
+                    // Sanitize filename if necessary, or use a generic name if part.FileName is null often
                     var attachmentBlobPath = $"{familyId}/email/{itemId}/attachments/{fileName}";
                     var attachmentBlobClient = _blobContainerClient.GetBlobClient(attachmentBlobPath);
-                    await using var stream = new MemoryStream();
-                    await part.Content.DecodeToAsync(stream, cancellationToken).ConfigureAwait(false);
-                    stream.Position = 0;
-                    await attachmentBlobClient.UploadAsync(stream, overwrite: true, cancellationToken).ConfigureAwait(false);
-                    attachmentBlobPaths.Add(attachmentBlobPath);
+
+                    long sizeBytes = 0;
+                    using (var partStream = new MemoryStream())
+                    {
+                        await part.Content.DecodeToAsync(partStream, cancellationToken).ConfigureAwait(false);
+                        sizeBytes = partStream.Length;
+                        partStream.Position = 0;
+                        await attachmentBlobClient.UploadAsync(partStream, overwrite: true, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    attachments.Add(new AttachmentInfo(fileName, part.ContentType.MimeType, sizeBytes, attachmentBlobPath));
                 }
             }
 
@@ -65,9 +90,16 @@ public class EmailPersistenceService : IEmailPersistenceService
             {
                 ReceivedAt = receivedAt,
                 Subject = subject,
-                Sender = sender,
+                SenderName = senderName,
+                SenderEmail = senderEmail,
+                To = toRecipients.Any() ? toRecipients : null,
+                Cc = ccRecipients.Any() ? ccRecipients : null,
                 EmlBlobPath = emlBlobPath,
-                AttachmentBlobPaths = attachmentBlobPaths
+                Attachments = attachments.Any() ? attachments : null,
+                ProviderMessageId = providerMessageId,
+                ProviderConversationId = providerConversationId,
+                ProviderSyncToken = providerSyncToken,
+                Labels = labels?.Any() == true ? labels : null
             };
             var familyItem = new FamilyItem
             {
@@ -75,7 +107,7 @@ public class EmailPersistenceService : IEmailPersistenceService
                 FamilyId = familyId,
                 Source = FamilyItemSource.Email,
                 Payload = payload,
-                Status = FamilyItemStatus.New,
+                Status = FamilyItemStatus.New, // Assuming status remains 'New' initially
                 CreatedAt = now,
                 ModifiedAt = now
             };
