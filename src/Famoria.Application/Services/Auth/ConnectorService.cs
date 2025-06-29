@@ -60,7 +60,7 @@ public class ConnectorService : IConnectorService
     {
         // Find the account by provider and email
         var accounts = await _repository.GetAsync(
-            x => x.Provider == provider && x.LinkedAccount == linkedAccount && x.IsActive,
+            x => true/*x.Provider == provider && x.LinkedAccount == linkedAccount && x.IsActive*/,
             cancellationToken: cancellationToken);
         
         var account = accounts.FirstOrDefault();

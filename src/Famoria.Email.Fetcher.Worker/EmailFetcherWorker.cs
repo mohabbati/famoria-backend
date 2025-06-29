@@ -31,6 +31,11 @@ public class EmailFetcherWorker : BackgroundService
 
             foreach (var provider in Enum.GetValues<IntegrationProvider>())
             {
+                // TODO: Skip providers that are not Google
+                // For now, we only process Google accounts
+                if (provider != IntegrationProvider.Google)
+                    continue;
+
                 _logger.LogInformation("Processing {Provider} linked accounts", provider);
                 var linkedAccounts = await connectorService.GetByAsync(provider, cancellationToken);
 

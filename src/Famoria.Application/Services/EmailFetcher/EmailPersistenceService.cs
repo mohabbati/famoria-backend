@@ -37,9 +37,6 @@ public class EmailPersistenceService : IEmailPersistenceService
             var senderEmail = from?.Address ?? string.Empty;
             var receivedAt = mime.Date;
 
-            var toList = mime.To.Mailboxes.Take(20).Select(m => m.Address).ToList();
-            var ccList = mime.Cc.Mailboxes.Take(20).Select(m => m.Address).ToList();
-
             // Upload original .eml
             var emlBlobPath = $"{familyId}/email/{itemId}/original.eml";
             var emlBlobClient = _blobContainerClient.GetBlobClient(emlBlobPath);
@@ -70,8 +67,6 @@ public class EmailPersistenceService : IEmailPersistenceService
                 Subject = subject,
                 SenderName = senderName,
                 SenderEmail = senderEmail,
-                To = toList.Count > 0 ? toList : null,
-                Cc = ccList.Count > 0 ? ccList : null,
                 EmlBlobPath = emlBlobPath,
                 Attachments = attachments.Count > 0 ? attachments : null,
                 ProviderMessageId = rawEmail.ProviderMessageId,
