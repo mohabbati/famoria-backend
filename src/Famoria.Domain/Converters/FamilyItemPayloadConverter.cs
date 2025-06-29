@@ -13,21 +13,10 @@ public class FamilyItemPayloadConverter : JsonConverter<FamilyItemPayload>
 
         var json = jsonDoc.RootElement.GetRawText();
 
-        // Create options that are more lenient with required properties
-        var deserializeOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            // This allows missing required properties during deserialization
-            AllowTrailingCommas = true,
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            NumberHandling = JsonNumberHandling.AllowReadingFromString,
-        };
-
         return typeProp.GetString()?.ToLowerInvariant() switch
         {
-            "email" => JsonSerializer.Deserialize<EmailPayload>(json, deserializeOptions),
-            "calendar" => JsonSerializer.Deserialize<CalendarPayload>(json, deserializeOptions),
+            "email" => JsonSerializer.Deserialize(json, FamoriaJsonContext.Default.EmailPayload),
+            "calendar" => JsonSerializer.Deserialize(json, FamoriaJsonContext.Default.CalendarPayload),
             _ => throw new JsonException($"Unknown payload type: {typeProp.GetString()}")
         };
     }

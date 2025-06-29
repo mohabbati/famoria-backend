@@ -4,10 +4,10 @@ public class EmailPayload : FamilyItemPayload
 {
     public override FamilyItemSource Source => FamilyItemSource.Email;
 
-    public required DateTimeOffset ReceivedAt { get; set; }
-    public required string Subject { get; set; }
-    public required string SenderName { get; set; }
-    public required string SenderEmail { get; set; }
+    public DateTimeOffset ReceivedAt { get; set; }
+    public string Subject { get; set; } = default!;
+    public string SenderName { get; set; } = default!;
+    public string SenderEmail { get; set; } = default!;
 
     public IList<string>? To { get; set; }
     public IList<string>? Cc { get; set; }
@@ -16,7 +16,7 @@ public class EmailPayload : FamilyItemPayload
     /// Blob path to the original <c>.eml</c> file.
     /// Example: <c>/{FamilyId}/email/{ItemId}/original.eml</c>
     /// </summary>
-    public required string EmlBlobPath { get; set; }
+    public string EmlBlobPath { get; set; } = default!;
 
     public IList<AttachmentInfo>? Attachments { get; set; }
 

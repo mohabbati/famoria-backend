@@ -15,6 +15,8 @@ public static class ServiceCollectionExtensions
             throw new NullReferenceException("Google client id not found.");
         var googleClientSecret = configuration["Auth:Google:ClientSecret"] ??
             throw new NullReferenceException("Google client secret not found.");
+        var gmailScope = configuration["Auth:Google:GmailScope"] ??
+            throw new NullReferenceException("Google scope not found.");
 
         var msClientId = configuration["Auth:Microsoft:ClientId"] ??
             throw new NullReferenceException("Microsoft client id not found.");
@@ -81,9 +83,7 @@ public static class ServiceCollectionExtensions
                 options.Scope.Clear();
                 options.Scope.Add("openid");
                 options.Scope.Add("email");
-                //options.Scope.Add("https://mail.google.com/");
-                options.Scope.Add("https://www.googleapis.com/auth/gmail.readonly");
-                //options.Scope.Add("https://www.googleapis.com/auth/gmail.modify");
+                options.Scope.Add(gmailScope);
                 options.AccessType = "offline";
                 options.SaveTokens = true;
                 options.UsePkce = true;

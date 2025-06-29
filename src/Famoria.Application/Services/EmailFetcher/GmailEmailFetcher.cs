@@ -23,6 +23,7 @@ public class GmailEmailFetcher : IEmailFetcher
     private readonly GoogleHttpClientFactory? _gmailHttpClientFactory;
     private readonly string _clientId;
     private readonly string _clientSecret;
+    private readonly string _gmailScope;
 
     public GmailEmailFetcher(
         ILogger<GmailEmailFetcher> logger,
@@ -39,6 +40,7 @@ public class GmailEmailFetcher : IEmailFetcher
         _gmailHttpClientFactory = gmailHttpClientFactory;
         _clientId = configuration["Auth:Google:ClientId"] ?? throw new InvalidOperationException("Google client id missing");
         _clientSecret = configuration["Auth:Google:ClientSecret"] ?? throw new InvalidOperationException("Google client secret missing");
+        _gmailScope = configuration["Auth:Google:GmailScope"] ?? throw new InvalidOperationException("Gmail scope missing");
     }
 
     private record TokenRefreshResponse(
@@ -61,7 +63,7 @@ public class GmailEmailFetcher : IEmailFetcher
             ["client_secret"] = _clientSecret,
             ["refresh_token"] = refreshToken,
             ["grant_type"] = "refresh_token",
-            ["scope"] = "https://mail.google.com/"
+            ["scope"] = _gmailScope
         });
 
         using var response = await _httpClient.PostAsync("https://oauth2.googleapis.com/token", content, cancellationToken).ConfigureAwait(false);
