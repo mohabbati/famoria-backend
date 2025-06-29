@@ -42,11 +42,11 @@ public class EmailPersistenceService : IEmailPersistenceService
             var emlBlobClient = _blobContainerClient.GetBlobClient(emlBlobPath);
             await emlBlobClient.UploadAsync(new BinaryData(rawEmail.Content), overwrite: true, cancellationToken).ConfigureAwait(false);
 
-            // Upload attachments
+            // Upload attachments (including inline images)
             var attachments = new List<AttachmentInfo>();
-            foreach (var attachment in mime.Attachments)
+            foreach (var part in mime.BodyParts.OfType<MimePart>())
             {
-                if (attachment is MimePart part)
+                if (!string.IsNullOrEmpty(part.FileName))
                 {
                     var fileName = part.FileName ?? IdFactory.NewGuidId();
                     var attachmentBlobPath = $"{familyId}/email/{itemId}/attachments/{fileName}";
