@@ -45,6 +45,7 @@ public static class ConfigureInfrastructure
             {
                 cosmosSettings.DisableTracing = false;
                 cosmosSettings.Credential = new DefaultAzureCredential();
+                cosmosSettings.AccountEndpoint = new Uri(builder.Configuration["CosmosDbSettings:AccountEndpoint"]!);
             },
             clientOptions =>
             {
@@ -63,6 +64,8 @@ public static class ConfigureInfrastructure
             {
                 blobsSettings.DisableTracing = false;
                 blobsSettings.Credential = new DefaultAzureCredential();
+                blobsSettings.ServiceUri = new Uri(builder.Configuration["BlobContainerSettings:ServiceUri"]!);
+                blobsSettings.BlobContainerName = builder.Configuration["BlobContainerSettings:ContainerName"];
             },
             clientBuilder =>
             {

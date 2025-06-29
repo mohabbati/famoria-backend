@@ -1,15 +1,9 @@
 using Azure.Storage.Blobs;
-using CosmosKit;
-using Famoria.Application.Interfaces;
 using Famoria.Domain.Common;
-using Famoria.Domain.Entities;
-using Famoria.Domain.Enums;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
 using System.Text;
-using System.Linq;
-
 using MimeKit;
+using Famoria.Application.Models;
 
 namespace Famoria.Application.Services;
 
@@ -20,22 +14,22 @@ public class EmailPersistenceService : IEmailPersistenceService
     private readonly ILogger<EmailPersistenceService> _logger;
 
     public EmailPersistenceService(
-        BlobServiceClient blobServiceClient,
+        BlobContainerClient blobContainerClient,
         IRepository<FamilyItem> repository,
         ILogger<EmailPersistenceService> logger)
     {
         _logger = logger;
         _repository = repository;
-        _blobContainerClient = blobServiceClient.GetBlobContainerClient("famoria");
+        _blobContainerClient = blobContainerClient;
     }
 
-    public async Task<string> PersistAsync(string emlContent, string familyId, CancellationToken cancellationToken)
+    public async Task<string> PersistAsync(RawEmail rawEmail, string familyId, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
         var itemId = IdFactory.NewGuidId();
         try
         {
-            var mime = MimeMessage.Load(new MemoryStream(Encoding.UTF8.GetBytes(emlContent)));
+            var mime = await MimeMessage.LoadAsync(new MemoryStream(Encoding.UTF8.GetBytes(rawEmail.Content)), cancellationToken);
 
             var subject = mime.Subject ?? string.Empty;
             var from = mime.From.Mailboxes.FirstOrDefault();
@@ -49,7 +43,7 @@ public class EmailPersistenceService : IEmailPersistenceService
             // Upload original .eml
             var emlBlobPath = $"{familyId}/email/{itemId}/original.eml";
             var emlBlobClient = _blobContainerClient.GetBlobClient(emlBlobPath);
-            await emlBlobClient.UploadAsync(new BinaryData(emlContent), overwrite: true, cancellationToken).ConfigureAwait(false);
+            await emlBlobClient.UploadAsync(new BinaryData(rawEmail.Content), overwrite: true, cancellationToken).ConfigureAwait(false);
 
             // Upload attachments
             var attachments = new List<AttachmentInfo>();
@@ -80,10 +74,10 @@ public class EmailPersistenceService : IEmailPersistenceService
                 Cc = ccList.Count > 0 ? ccList : null,
                 EmlBlobPath = emlBlobPath,
                 Attachments = attachments.Count > 0 ? attachments : null,
-                ProviderMessageId = null,
-                ProviderConversationId = null,
-                ProviderSyncToken = null,
-                Labels = null
+                ProviderMessageId = rawEmail.ProviderMessageId,
+                ProviderConversationId = rawEmail.ProviderConversationId,
+                ProviderSyncToken = rawEmail.ProviderHistoryId,
+                Labels = rawEmail.Labels
             };
             var familyItem = new FamilyItem
             {

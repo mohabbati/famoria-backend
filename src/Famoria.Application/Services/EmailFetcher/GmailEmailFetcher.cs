@@ -2,17 +2,15 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Net;
-using System.Net.Http.Headers;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
-using Google.Apis.Http;
 using GoogleHttpClientFactory = Google.Apis.Http.IHttpClientFactory;
-using NetHttpClientFactory = System.Net.Http.IHttpClientFactory;
 using Google.Apis.Services;
 using Google;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Famoria.Application.Models;
 
 namespace Famoria.Application.Services;
 
@@ -78,9 +76,9 @@ public class GmailEmailFetcher : IEmailFetcher
         return tokenResponse.AccessToken;
     }
 
-    public async Task<List<string>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken)
+    public async Task<IList<RawEmail>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken)
     {
-        var emails = new List<string>();
+        var emails = new List<RawEmail>();
         var correlationId = Guid.NewGuid().ToString();
         try
         {
@@ -136,7 +134,7 @@ public class GmailEmailFetcher : IEmailFetcher
                             case 3: padded += "="; break;
                         }
                         var bytes = Convert.FromBase64String(padded);
-                        emails.Add(Encoding.UTF8.GetString(bytes));
+                        emails.Add(new(Encoding.UTF8.GetString(bytes), rawResponse.Id, rawResponse.ThreadId, rawResponse.HistoryId.ToString(), rawResponse.LabelIds));
                     }
                 }
                 catch (Exception ex)

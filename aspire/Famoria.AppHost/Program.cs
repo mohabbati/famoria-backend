@@ -21,6 +21,7 @@ cosmosDb.AddContainer("family-tasks", "/familyId");
 var storageAccount = builder.AddAzureStorage("storage-account").RunAsEmulator(x =>
     {
         x.WithLifetime(ContainerLifetime.Persistent);
+        x.WithDataVolume("famoria-blob-storage");
     });
 var blobs = storageAccount.AddBlobs("blobs");
 var blobContainer = blobs.AddBlobContainer("blob-container", "famoria");
@@ -50,11 +51,16 @@ var blobContainer = blobs.AddBlobContainer("blob-container", "famoria");
 #endregion
 
 var api = builder.AddProject<Projects.Famoria_Api>("famoria-api")
+    .WithEnvironment("CosmosDbSettings:AccountEndpoint", "https://a.valid.url/")
     .WithEnvironment("CosmosDbSettings:DatabaseId", "famoria")
+    .WithEnvironment("BlobContainerSettings:ServiceUri", "https://a.valid.url/")
+    .WithEnvironment("BlobContainerSettings:ContainerName", "famoria")
     .WithReference(cosmos)
     .WaitFor(cosmos);
 builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher-worker")
+    .WithEnvironment("CosmosDbSettings:AccountEndpoint", "https://a.valid.url/")
     .WithEnvironment("CosmosDbSettings:DatabaseId", "famoria")
+    .WithEnvironment("BlobContainerSettings:ServiceUri", "https://a.valid.url/")
     .WithEnvironment("BlobContainerSettings:ContainerName", "famoria")
     .WithReference(cosmos)
     .WaitFor(cosmos)
@@ -75,5 +81,8 @@ builder.AddProject<Projects.Famoria_Email_Fetcher_Worker>("famoria-email-fetcher
 //    .WaitFor(cosmos)
 //    .WithReference(blobContainer)
 //    .WaitFor(blobContainer);
+
+//builder.AddProject<Projects.Famoria_AuthTester>("famoria-auth-tester")
+//    .WaitFor(api);
 
 builder.Build().Run();

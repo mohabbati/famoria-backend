@@ -1,3 +1,5 @@
+using Famoria.Application.Models;
+
 namespace Famoria.Application.Interfaces;
 
 public interface IEmailFetcher
@@ -10,5 +12,5 @@ public interface IEmailFetcher
     /// <param name="since">Only fetch emails received after this time (UTC).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of raw .eml strings.</returns>
-    Task<List<string>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken);
+    Task<IList<RawEmail>> GetNewEmailsAsync(string userEmail, string accessToken, DateTime since, CancellationToken cancellationToken);
 }

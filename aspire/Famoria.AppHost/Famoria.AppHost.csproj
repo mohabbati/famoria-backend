@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\sample\Famoria.AuthTester\Famoria.AuthTester.csproj" />
+    <!--<ProjectReference Include="..\..\sample\Famoria.AuthTester\Famoria.AuthTester.csproj" />-->
     <ProjectReference Include="..\..\src\Famoria.Api\Famoria.Api.csproj" />
     <ProjectReference Include="..\..\src\Famoria.Email.Fetcher.Worker\Famoria.Email.Fetcher.Worker.csproj" />
     <ProjectReference Include="..\..\src\Famoria.Email.Filter.Worker\Famoria.Email.Filter.Worker.csproj" />

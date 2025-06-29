@@ -9,8 +9,8 @@ public class EmailPayload : FamilyItemPayload
     public required string SenderName { get; set; }
     public required string SenderEmail { get; set; }
 
-    public List<string>? To { get; set; }
-    public List<string>? Cc { get; set; }
+    public IList<string>? To { get; set; }
+    public IList<string>? Cc { get; set; }
 
     /// <summary>
     /// Blob path to the original <c>.eml</c> file.
@@ -18,12 +18,12 @@ public class EmailPayload : FamilyItemPayload
     /// </summary>
     public required string EmlBlobPath { get; set; }
 
-    public List<AttachmentInfo>? Attachments { get; set; }
+    public IList<AttachmentInfo>? Attachments { get; set; }
 
     public string? ProviderMessageId { get; set; }
     public string? ProviderConversationId { get; set; }
     public string? ProviderSyncToken { get; set; }
-    public List<string>? Labels { get; set; }
+    public IList<string>? Labels { get; set; }
 }
 
 public record AttachmentInfo(string FileName, string MimeType, long SizeBytes, string BlobPath);

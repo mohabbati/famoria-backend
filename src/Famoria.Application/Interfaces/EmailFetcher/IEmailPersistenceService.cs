@@ -1,3 +1,5 @@
+using Famoria.Application.Models;
+
 namespace Famoria.Application.Interfaces;
 
 public interface IEmailPersistenceService
@@ -9,5 +11,5 @@ public interface IEmailPersistenceService
     /// <param name="familyId">Target Cosmos partition and blob folder.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The generated ItemId.</returns>
-    Task<string> PersistAsync(string emlContent, string familyId, CancellationToken cancellationToken);
+    Task<string> PersistAsync(RawEmail rawEmail, string familyId, CancellationToken cancellationToken);
 }
