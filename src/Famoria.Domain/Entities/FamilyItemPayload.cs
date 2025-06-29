@@ -1,10 +1,7 @@
 using System.Text.Json.Serialization;
 
-using Famoria.Domain.Converters;
-
 namespace Famoria.Domain.Entities;
 
-[JsonConverter(typeof(FamilyItemPayloadConverter))]
 public abstract class FamilyItemPayload
 {
     [JsonIgnore]

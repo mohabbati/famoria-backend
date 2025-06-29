@@ -2,9 +2,9 @@ namespace Famoria.Application.Services;
 
 public class UserService : IUserService
 {
-    private readonly IRepository<FamoriaUser> _users;
+    private readonly ICosmosRepository<FamoriaUser> _users;
 
-    public UserService(IRepository<FamoriaUser> users)
+    public UserService(ICosmosRepository<FamoriaUser> users)
     {
         _users = users;
     }
@@ -29,7 +29,7 @@ public class UserService : IUserService
 
     public async Task<FamoriaUserDto?> GetByAsync(string id, CancellationToken cancellationToken = default)
     {
-        var user = await _users.GetByAsync(new FamoriaUser(id), cancellationToken);
+        var user = await _users.GetByAsync(id, id, cancellationToken);
 
         if (user is null)
             return null;
@@ -46,23 +46,23 @@ public class UserService : IUserService
     }
     public async Task<FamoriaUserDto> AddFamilyToUserAsync(string userId, string familyId, CancellationToken cancellationToken = default)
     {
-        var user = await _users.GetByAsync(new FamoriaUser(userId), cancellationToken);
+        var user = await _users.GetByAsync(userId, userId, cancellationToken);
 
         if (user is null)
             throw new InvalidOperationException($"User with ID {userId} not found.");
 
         user.FamilyIds.Add(familyId);
 
-        var updated = await _users.UpdateAsync(user, cancellationToken);
+        await _users.UpdateAsync(user, cancellationToken);
 
         return new FamoriaUserDto(
-            updated.Id,
-            updated.Name,
-            updated.FirstName,
-            updated.LastName,
-            updated.Email,
-            updated.Provider,
-            updated.ProviderSub,
-            updated.FamilyIds);
+            user.Id,
+            user.Name,
+            user.FirstName,
+            user.LastName,
+            user.Email,
+            user.Provider,
+            user.ProviderSub,
+            user.FamilyIds);
     }
 }

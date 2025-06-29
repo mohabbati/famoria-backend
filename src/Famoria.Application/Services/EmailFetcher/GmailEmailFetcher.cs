@@ -17,7 +17,7 @@ namespace Famoria.Application.Services;
 public class GmailEmailFetcher : IEmailFetcher
 {
     private readonly ILogger<GmailEmailFetcher> _logger;
-    private readonly IRepository<UserLinkedAccount> _repository;
+    private readonly ICosmosRepository<UserLinkedAccount> _repository;
     private readonly IAesCryptoService _cryptoService;
     private readonly HttpClient _httpClient;
     private readonly GoogleHttpClientFactory? _gmailHttpClientFactory;
@@ -27,7 +27,7 @@ public class GmailEmailFetcher : IEmailFetcher
 
     public GmailEmailFetcher(
         ILogger<GmailEmailFetcher> logger,
-        IRepository<UserLinkedAccount> repository,
+        ICosmosRepository<UserLinkedAccount> repository,
         IAesCryptoService cryptoService,
         HttpClient httpClient,
         IConfiguration configuration,
@@ -50,7 +50,8 @@ public class GmailEmailFetcher : IEmailFetcher
     private async Task<string> RefreshAccessTokenAsync(string userEmail, CancellationToken cancellationToken)
     {
         var accounts = await _repository.GetAsync(
-            x => true/*x.Provider == IntegrationProvider.Google && x.LinkedAccount == userEmail && x.IsActive*/,
+            x => x.Provider.ToString() == IntegrationProvider.Google.ToString() && x.LinkedAccount == userEmail && x.IsActive,
+            IntegrationProvider.Google.ToString(),
             cancellationToken: cancellationToken);
         var account = accounts.FirstOrDefault() ?? throw new InvalidOperationException($"No linked Gmail account for {userEmail}");
         if (string.IsNullOrEmpty(account.RefreshToken))

@@ -1,13 +1,14 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Azure.Identity;
-using CosmosKit;
-using Famoria.Domain.Converters;
+using Famoria.Application.Interfaces;
 using Famoria.Domain.Entities;
-using Microsoft.Azure.Cosmos;
+using Famoria.Infrastructure.Persistence;
+using Famoria.Infrastructure.Persistence.JsonSerialization;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Famoria.Infrastructure;
 
@@ -23,22 +24,30 @@ public static class ConfigureInfrastructure
 
     public static IHostApplicationBuilder AddCosmosDb(this IHostApplicationBuilder builder)
     {
-        var databaseId = builder.Configuration["CosmosDbSettings:DatabaseId"]!;
+        RepositoryHelper.DatabaseId = builder.Configuration["CosmosDbSettings:DatabaseId"]!;
 
-        builder.Services.AddCosmosKit(databaseId,
-        [
-            new EntityContainer(typeof(FamoriaUser), "users", nameof(FamoriaUser.Id)),
-            new EntityContainer(typeof(Family), "families", nameof(Family.Id)),
-            new EntityContainer(typeof(UserLinkedAccount), "user-linked-accounts", nameof(UserLinkedAccount.Provider)),
-            new EntityContainer(typeof(FamilyItem), "family-items", nameof(FamilyItem.FamilyId)),
-            new EntityContainer(typeof(FamilyTask), "family-tasks", nameof(FamilyTask.FamilyId))
-        ], options =>
+        builder.Services.AddSingleton(new ContainerResolver()
         {
-            options.TypeInfoResolver = FamoriaJsonContext.Default;
-            options.Converters.Add(new FamilyItemPayloadConverter());
-            options.Converters.Add(new JsonStringEnumConverter());
-            options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            RegisteredContainers = new Dictionary<Type, string>()
+            {
+                { typeof(FamoriaUser), "users" },
+                { typeof(Family), "families" },
+                { typeof(UserLinkedAccount), "user-linked-accounts" },
+                { typeof(FamilyItem), "family-items" },
+                { typeof(FamilyTask), "family-tasks" }
+            },
+            RegisteredPartitionKeys = new Dictionary<Type, PropertyInfo>()
+            {
+                { typeof(FamoriaUser), typeof(FamoriaUser).GetProperty(nameof(FamoriaUser.Id))! },
+                { typeof(Family), typeof(Family).GetProperty(nameof(Family.Id))! },
+                { typeof(UserLinkedAccount), typeof(UserLinkedAccount).GetProperty(nameof(UserLinkedAccount.Provider))! },
+                { typeof(FamilyItem), typeof(FamilyItem).GetProperty(nameof(FamilyItem.FamilyId))! },
+                { typeof(FamilyTask), typeof(FamilyTask).GetProperty(nameof(FamilyTask.FamilyId))! }
+            }
         });
+
+        builder.Services.AddScoped<CosmosLinqQuery>();
+        builder.Services.AddScoped(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
 
         builder.AddAzureCosmosClient("cosmos",
             cosmosSettings =>
@@ -49,9 +58,18 @@ public static class ConfigureInfrastructure
             },
             clientOptions =>
             {
+                clientOptions.EnableContentResponseOnWrite = false;
                 clientOptions.ApplicationName = AppDomain.CurrentDomain.FriendlyName;
                 clientOptions.CosmosClientTelemetryOptions = new() { DisableDistributedTracing = false };
-                clientOptions.Serializer = builder.Services.BuildServiceProvider().GetRequiredService<CosmosSerializer>();
+
+                var jsonOptions = new JsonSerializerOptions
+                {
+                    TypeInfoResolver = FamoriaJsonContext.Default,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                jsonOptions.Converters.Add(new FamilyItemPayloadConverter());
+                jsonOptions.Converters.Add(new JsonStringEnumConverter());
+                clientOptions.Serializer = new CosmosSystemTextJsonSerializer(jsonOptions);
             });
 
         return builder;

@@ -1,21 +1,20 @@
 using Azure.Storage.Blobs;
-using Famoria.Domain.Common;
-using Microsoft.Extensions.Logging;
-using System.Text;
-using MimeKit;
 using Famoria.Application.Models;
+using Microsoft.Extensions.Logging;
+using MimeKit;
+using System.Text;
 
 namespace Famoria.Application.Services;
 
 public class EmailPersistenceService : IEmailPersistenceService
 {
     private readonly BlobContainerClient _blobContainerClient;
-    private readonly IRepository<FamilyItem> _repository;
+    private readonly ICosmosRepository<FamilyItem> _repository;
     private readonly ILogger<EmailPersistenceService> _logger;
 
     public EmailPersistenceService(
         BlobContainerClient blobContainerClient,
-        IRepository<FamilyItem> repository,
+        ICosmosRepository<FamilyItem> repository,
         ILogger<EmailPersistenceService> logger)
     {
         _logger = logger;
@@ -80,9 +79,7 @@ public class EmailPersistenceService : IEmailPersistenceService
                 FamilyId = familyId,
                 Source = FamilyItemSource.Email,
                 Payload = payload,
-                Status = FamilyItemStatus.New,
-                CreatedAt = now,
-                ModifiedAt = now
+                Status = FamilyItemStatus.New
             };
 
             // Persist to Cosmos DB

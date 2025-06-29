@@ -1,10 +1,12 @@
+using Famoria.Domain.Common;
+
 namespace Famoria.Application.Services;
 
 public class FamilyService : IFamilyService
 {
-    private readonly IRepository<Family> _families;
+    private readonly ICosmosRepository<Family> _families;
 
-    public FamilyService(IRepository<Family> families)
+    public FamilyService(ICosmosRepository<Family> families)
     {
         _families = families;
     }
@@ -13,6 +15,7 @@ public class FamilyService : IFamilyService
     {
         var family = new Family
         {
+            Id = IdFactory.NewGuidId(),
             DisplayName = familyDto.DisplayName,
             Members = familyDto.Members?.Select(c => new FamilyMember
             {
@@ -25,9 +28,9 @@ public class FamilyService : IFamilyService
             }).ToList() ?? [],
         };
 
-        var result = await _families.AddAsync(family, cancellationToken);
+        await _families.AddAsync(family, cancellationToken);
 
-        return result.Id;
+        return family.Id;
     }
 
     public async Task<string> UpdateAsync(UpdateFamilyDto familyDto, CancellationToken cancellationToken = default)
@@ -46,8 +49,8 @@ public class FamilyService : IFamilyService
             }).ToList() ?? [],
         };
 
-        var result = await _families.UpdateAsync(family, cancellationToken);
+        await _families.UpdateAsync(family, cancellationToken);
 
-        return result.Id;
+        return family.Id;
     }
 }

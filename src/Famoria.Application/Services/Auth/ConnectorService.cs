@@ -1,13 +1,11 @@
-using Famoria.Domain.Common;
-
 namespace Famoria.Application.Services;
 
 public class ConnectorService : IConnectorService
 {
     private readonly IAesCryptoService _crypto;
-    private readonly IRepository<UserLinkedAccount> _repository;
+    private readonly ICosmosRepository<UserLinkedAccount> _repository;
 
-    public ConnectorService(IAesCryptoService crypto, IRepository<UserLinkedAccount> repository)
+    public ConnectorService(IAesCryptoService crypto, ICosmosRepository<UserLinkedAccount> repository)
     {
         _crypto = crypto;
         _repository = repository;
@@ -40,7 +38,8 @@ public class ConnectorService : IConnectorService
     public async Task<IEnumerable<UserLinkedAccountDto>> GetByAsync(IntegrationProvider provider, CancellationToken cancellationToken)
     {
         var result = await _repository.GetAsync(
-            x => true/*x.Provider.ToString() == provider.ToString() && x.IsActive == true*/,
+            x => x.Provider.ToString() == provider.ToString() && x.IsActive == true,
+            provider.ToString(),
             cancellationToken: cancellationToken
         );
 
@@ -60,7 +59,8 @@ public class ConnectorService : IConnectorService
     {
         // Find the account by provider and email
         var accounts = await _repository.GetAsync(
-            x => true/*x.Provider == provider && x.LinkedAccount == linkedAccount && x.IsActive*/,
+            x => x.Provider.ToString() == provider.ToString() && x.LinkedAccount == linkedAccount && x.IsActive,
+            provider.ToString(),
             cancellationToken: cancellationToken);
         
         var account = accounts.FirstOrDefault();

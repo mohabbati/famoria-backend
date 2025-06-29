@@ -1,6 +1,7 @@
+using Famoria.Domain.Entities;
 using System.Text.Json.Serialization;
 
-namespace Famoria.Domain.Converters;
+namespace Famoria.Infrastructure.Persistence.JsonSerialization;
 
 [JsonSourceGenerationOptions(WriteIndented = false)]
 [JsonSerializable(typeof(FamoriaUser))]

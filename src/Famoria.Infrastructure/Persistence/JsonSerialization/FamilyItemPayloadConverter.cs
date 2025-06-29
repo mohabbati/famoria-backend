@@ -1,7 +1,8 @@
+using Famoria.Domain.Entities;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Famoria.Domain.Converters;
+namespace Famoria.Infrastructure.Persistence.JsonSerialization;
 
 public class FamilyItemPayloadConverter : JsonConverter<FamilyItemPayload>
 {
@@ -11,13 +12,13 @@ public class FamilyItemPayloadConverter : JsonConverter<FamilyItemPayload>
         if (!jsonDoc.RootElement.TryGetProperty("source", out JsonElement typeProp))
             throw new JsonException("Missing Type discriminator.");
 
-        var json = jsonDoc.RootElement.GetRawText();
+        var typeString = typeProp.GetString()?.ToLowerInvariant();
 
-        return typeProp.GetString()?.ToLowerInvariant() switch
+        return typeString switch
         {
-            "email" => JsonSerializer.Deserialize(json, FamoriaJsonContext.Default.EmailPayload),
-            "calendar" => JsonSerializer.Deserialize(json, FamoriaJsonContext.Default.CalendarPayload),
-            _ => throw new JsonException($"Unknown payload type: {typeProp.GetString()}")
+            "email" => JsonSerializer.Deserialize(jsonDoc.RootElement, typeof(EmailPayload), FamoriaJsonContext.Default) as FamilyItemPayload,
+            "calendar" => JsonSerializer.Deserialize(jsonDoc.RootElement, typeof(CalendarPayload), FamoriaJsonContext.Default) as FamilyItemPayload,
+            _ => throw new JsonException($"Unknown payload type: {typeString}")
         };
     }
 
