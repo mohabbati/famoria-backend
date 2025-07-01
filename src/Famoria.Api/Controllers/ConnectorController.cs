@@ -1,8 +1,9 @@
+using System.Security.Claims;
+using Famoria.Api.Background;
+using Famoria.Application.Features.FetchEmails;
 using Famoria.Domain.Enums;
-
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using System.Security.Claims;
 
 namespace Famoria.Api.Controllers;
 
@@ -10,13 +11,16 @@ public class ConnectorController : CustomControllerBase
 {
     private readonly IConnectorService _connector;
     private readonly IConfiguration _config;
+    private readonly IBackgroundTaskQueue _taskQueue;
 
     public ConnectorController(IMediator mediator,
                                IConnectorService connector,
-                               IConfiguration config) : base(mediator)
+                               IConfiguration config,
+                               IBackgroundTaskQueue taskQueue) : base(mediator)
     {
         _connector = connector;
         _config = config;
+        _taskQueue = taskQueue;
     }
 
     [Authorize]
@@ -55,7 +59,7 @@ public class ConnectorController : CustomControllerBase
                 "text/html");
         }
 
-        var linkedEmail = result.Principal.Email();
+        var linkedEmail = result.Principal.Email()!;
         var expiresAtRaw = result.Properties.GetTokenValue("expires_at")!;
         var expiresAt = DateTimeOffset.Parse(expiresAtRaw).UtcDateTime;
         var familyId = User.FamilyId();
@@ -68,7 +72,22 @@ public class ConnectorController : CustomControllerBase
 
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        await _connector.LinkAsync(User.FamoriaUserId()!, familyId, IntegrationProvider.Google, linkedEmail!, accessToken, refreshToken, expiresAt, cancellationToken);
+        await _connector.LinkAsync(User.FamoriaUserId()!, familyId, IntegrationProvider.Google, linkedEmail, accessToken, refreshToken, expiresAt, cancellationToken);
+
+        // Enqueue email fetch for the last 7 days
+        await _taskQueue.QueueAsync(async (sp, ct) =>
+        {
+            var mediator = sp.GetRequiredService<IMediator>();
+            await mediator.Send(
+                new FetchEmailsCommand(familyId, linkedEmail, accessToken, DateTime.UtcNow.AddDays(-7)),
+                ct);
+
+            await _connector.UpdateLastFetchedAsync(
+                IntegrationProvider.Google,
+                linkedEmail,
+                DateTime.UtcNow,
+                cancellationToken);
+        }, cancellationToken);
 
         var html = $"<script>window.opener.postMessage({{gmail:'linked'}},'{origin}');window.close();</script>";
 
@@ -124,7 +143,7 @@ public class ConnectorController : CustomControllerBase
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         await _connector.LinkAsync(User.FamoriaUserId()!, familyId, IntegrationProvider.Microsoft, linkedEmail!, accessToken, refreshToken, expiresAt, cancellationToken);
-        
+
         var html = $"<script>window.opener.postMessage({{outlook:'linked'}},'{safeReturnUrl}');window.close();</script>";
 
         return Content(html, "text/html");

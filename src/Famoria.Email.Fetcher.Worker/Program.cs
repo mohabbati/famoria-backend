@@ -10,7 +10,6 @@ builder
     .AddApplication()
     .AddEmailFetcherServices();
 
-
 builder.Services.AddHostedService<EmailFetcherWorker>();
 
 var host = builder.Build();

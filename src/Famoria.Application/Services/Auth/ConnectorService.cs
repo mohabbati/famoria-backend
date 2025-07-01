@@ -38,7 +38,7 @@ public class ConnectorService : IConnectorService
     public async Task<IEnumerable<UserLinkedAccountDto>> GetByAsync(IntegrationProvider provider, CancellationToken cancellationToken)
     {
         var result = await _repository.GetAsync(
-            x => x.Provider.ToString() == provider.ToString() && x.IsActive == true,
+            x => x.Provider.ToString() == provider.ToString() && x.IsActive == true && x.LastFetchedAtUtc != null,
             provider.ToString(),
             cancellationToken: cancellationToken
         );

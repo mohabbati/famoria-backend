@@ -1,4 +1,5 @@
 using System.Text;
+using Famoria.Api.Background;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -194,6 +195,13 @@ public static class ServiceCollectionExtensions
             });
         });
 
+        return services;
+    }
+
+    public static IServiceCollection AddBackgroundQueue(this IServiceCollection services)
+    {
+        services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+        services.AddHostedService<QueuedHostedService>();
         return services;
     }
 }

@@ -15,6 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCustomSwagger(builder.Configuration);
 builder.Services.AddCustomCors(builder.Configuration);
 builder.Services.AddAuth(builder.Configuration);
+builder.Services.AddBackgroundQueue();
 
 var app = builder.Build();
 
