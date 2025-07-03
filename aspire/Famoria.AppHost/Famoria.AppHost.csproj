@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Sdk Name="Aspire.AppHost.Sdk" Version="9.3.0" />
 
@@ -20,9 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Famoria.Api\Famoria.Api.csproj" />
     <ProjectReference Include="..\..\src\Famoria.Email.Fetcher.Worker\Famoria.Email.Fetcher.Worker.csproj" />
-    <ProjectReference Include="..\..\src\Famoria.Email.Filter.Worker\Famoria.Email.Filter.Worker.csproj" />
     <ProjectReference Include="..\..\src\Famoria.Summarizer.Worker\Famoria.Summarizer.Worker.csproj" />
-    <ProjectReference Include="..\..\src\Famoria.Tasker.Worker\Famoria.Tasker.Worker.csproj" />
   </ItemGroup>
 
 </Project>
