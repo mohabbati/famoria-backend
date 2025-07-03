@@ -33,16 +33,14 @@ public static class ConfigureInfrastructure
                 { typeof(FamoriaUser), "users" },
                 { typeof(Family), "families" },
                 { typeof(UserLinkedAccount), "user-linked-accounts" },
-                { typeof(FamilyItem), "family-items" },
-                { typeof(FamilyTask), "family-tasks" }
+                { typeof(FamilyItem), "family-items" }
             },
             RegisteredPartitionKeys = new Dictionary<Type, PropertyInfo>()
             {
                 { typeof(FamoriaUser), typeof(FamoriaUser).GetProperty(nameof(FamoriaUser.Id))! },
                 { typeof(Family), typeof(Family).GetProperty(nameof(Family.Id))! },
                 { typeof(UserLinkedAccount), typeof(UserLinkedAccount).GetProperty(nameof(UserLinkedAccount.Provider))! },
-                { typeof(FamilyItem), typeof(FamilyItem).GetProperty(nameof(FamilyItem.FamilyId))! },
-                { typeof(FamilyTask), typeof(FamilyTask).GetProperty(nameof(FamilyTask.FamilyId))! }
+                { typeof(FamilyItem), typeof(FamilyItem).GetProperty(nameof(FamilyItem.FamilyId))! }
             }
         });
 
