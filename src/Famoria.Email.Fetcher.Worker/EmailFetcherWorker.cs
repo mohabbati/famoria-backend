@@ -37,15 +37,22 @@ public class EmailFetcherWorker : BackgroundService
 
                 var linkedAccounts = await connectorService.GetByAsync(provider, cancellationToken);
 
-                _logger.LogInformation(
-                    "Starting email fetch for provider {Provider}. Found {Count} linked account(s) to process.",
-                    provider, linkedAccounts.Count());
+                if (linkedAccounts.Any())
+                {
+                    _logger.LogInformation(
+                        "Starting email fetch for provider {Provider}. Found {Count} linked account(s) to process.",
+                        provider, linkedAccounts.Count());
 
-                var processedCount = await mediator.Send(new FetchEmailsCommand(linkedAccounts), cancellationToken);
+                    var processedCount = await mediator.Send(new FetchEmailsCommand(linkedAccounts), cancellationToken);
 
-                _logger.LogInformation(
-                    "Completed email fetch for provider {Provider}. Successfully processed {Count} account(s).",
-                    provider, processedCount);
+                    _logger.LogInformation(
+                        "Completed email fetch for provider {Provider}. Successfully processed {Count} account(s).",
+                        provider, processedCount);
+                }
+                else
+                {
+                    _logger.LogWarning("No linked accounts found for provider {Provider}. Skipping email fetch.", provider);
+                }
             }
 
             await Task.Delay(_fetchInterval, cancellationToken);
