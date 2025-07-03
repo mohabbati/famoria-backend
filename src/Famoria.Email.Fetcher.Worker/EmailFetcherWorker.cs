@@ -35,33 +35,17 @@ public class EmailFetcherWorker : BackgroundService
                 if (provider != IntegrationProvider.Google)
                     continue;
 
-                _logger.LogInformation("Processing {Provider} linked accounts", provider);
                 var linkedAccounts = await connectorService.GetByAsync(provider, cancellationToken);
 
-                foreach (var account in linkedAccounts)
-                {
-                    if (cancellationToken.IsCancellationRequested) break;
-                    try
-                    {
-                        var command = new FetchEmailsCommand(
-                            provider,
-                            account.FamilyId,
-                            account.LinkedAccount,
-                            account.AccessToken,
-                            account.LastFetchedAtUtc);
-                        var processedCount = await mediator.Send(command, cancellationToken);
-                        _logger.LogInformation(
-                            "Fetched {Count} emails for {Email} from {Provider} at {Time}",
-                            processedCount,
-                            account.LinkedAccount,
-                            provider,
-                            DateTimeOffset.Now);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error processing linked account {Email} from {Provider}", account.LinkedAccount, provider);
-                    }
-                }
+                _logger.LogInformation(
+                    "Starting email fetch for provider {Provider}. Found {Count} linked account(s) to process.",
+                    provider, linkedAccounts.Count());
+
+                var processedCount = await mediator.Send(new FetchEmailsCommand(linkedAccounts), cancellationToken);
+
+                _logger.LogInformation(
+                    "Completed email fetch for provider {Provider}. Successfully processed {Count} account(s).",
+                    provider, processedCount);
             }
 
             await Task.Delay(_fetchInterval, cancellationToken);

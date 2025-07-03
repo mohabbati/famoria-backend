@@ -1,3 +1,5 @@
+using MediatR;
+
 using Microsoft.Extensions.Logging;
 
 namespace Famoria.Application.Features.FetchEmails;
@@ -21,31 +23,52 @@ public class FetchEmailsHandler : IRequestHandler<FetchEmailsCommand, int>
 
     public async Task<int> Handle(FetchEmailsCommand request, CancellationToken cancellationToken)
     {
-        var decryptedAccessToken = _cryptoService.Decrypt(request.AccessToken);
-
-        // Use the 'Since' value from the command
-        var emails = await _emailFetcher.GetNewEmailsAsync(request.UserEmail, decryptedAccessToken, request.Since, cancellationToken);
         int successCount = 0;
-        foreach (var eml in emails)
+
+        foreach (var account in request.LinkedAccounts)
         {
+            if (cancellationToken.IsCancellationRequested) break;
             try
             {
-                await _emailPersistenceService.PersistAsync(eml, request.FamilyId, cancellationToken);
+                var decryptedAccessToken = _cryptoService.Decrypt(account.AccessToken);
+
+                var emails = await _emailFetcher.GetNewEmailsAsync(account.LinkedAccount, decryptedAccessToken, account.LastFetchedAtUtc, cancellationToken);
+                int emailSuccessCount = 0;
+                foreach (var eml in emails)
+                {
+                    try
+                    {
+                        await _emailPersistenceService.PersistAsync(eml, account.FamilyId, cancellationToken);
+                        emailSuccessCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to persist email for family {FamilyId}", account.FamilyId);
+                    }
+                }
+
+                if (emailSuccessCount > 0 || request.ForceUpdateLastFetched)
+                {
+                    await _connectorService.UpdateLastFetchedAsync(
+                        account.Provider,
+                        account.LinkedAccount,
+                        DateTime.UtcNow,
+                        cancellationToken);
+                }
+
                 successCount++;
+
+                _logger.LogInformation(
+                    "Fetched {Count} emails for {Email} from {Provider} at {Time}",
+                    emailSuccessCount,
+                    account.LinkedAccount,
+                    account.Provider,
+                    DateTimeOffset.Now);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to persist email for family {FamilyId}", request.FamilyId);
+                _logger.LogError(ex, "Error processing linked account {Email} from {Provider}", account.LinkedAccount, account.Provider);
             }
-        }
-
-        if (successCount > 0 || request.ForceUpdateLastFetched)
-        {
-            await _connectorService.UpdateLastFetchedAsync(
-                request.Provider,
-                request.UserEmail,
-                DateTime.UtcNow,
-                cancellationToken);
         }
 
         return successCount;

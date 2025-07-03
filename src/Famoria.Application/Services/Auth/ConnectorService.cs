@@ -34,7 +34,7 @@ public class ConnectorService : IConnectorService
 
         await _repository.UpsertAsync(linkedAccount, cancellationToken);
 
-        return new(familyId, email, encryptedAccessToken, encryptedRefreshToken, expiresAt);
+        return new(provider, familyId, email, encryptedAccessToken, encryptedRefreshToken, expiresAt);
     }
 
     public async Task<IEnumerable<UserLinkedAccountDto>> GetByAsync(IntegrationProvider provider, CancellationToken cancellationToken)
@@ -47,14 +47,13 @@ public class ConnectorService : IConnectorService
 
         var linkedAccounts = result.ToList();
 
-        var defaultLastFetchedAt = DateTime.UtcNow.AddDays(-7);
-
         return result.Select(x => new UserLinkedAccountDto(
+            x.Provider,
             x.FamilyId,
             x.LinkedAccount,
             x.AccessToken,
             x.RefreshToken,
-            x.LastFetchedAtUtc ?? defaultLastFetchedAt));
+            x.LastFetchedAtUtc ?? DateTime.MinValue));
     }
 
     public async Task UpdateLastFetchedAsync(IntegrationProvider provider, string linkedAccount, DateTime fetchedAt, CancellationToken cancellationToken)

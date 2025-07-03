@@ -73,15 +73,13 @@ public class ConnectorController : CustomControllerBase
 
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        var linedDto = await _connector.LinkAsync(User.FamoriaUserId()!, familyId, IntegrationProvider.Google, linkedEmail, accessToken, refreshToken, expiresAt, cancellationToken);
+        var linkedAccountDto = await _connector.LinkAsync(User.FamoriaUserId()!, familyId, IntegrationProvider.Google, linkedEmail, accessToken, refreshToken, expiresAt, cancellationToken);
 
         // Enqueue email fetch for the last 7 days
         await _taskQueue.QueueAsync(async (sp, ct) =>
         {
             var mediator = sp.GetRequiredService<IMediator>();
-            await mediator.Send(
-                new FetchEmailsCommand(IntegrationProvider.Google, familyId, linkedEmail, linedDto.AccessToken, DateTime.UtcNow.AddDays(-7), true),
-                ct);
+            await mediator.Send(new FetchEmailsCommand([linkedAccountDto with { LastFetchedAtUtc = DateTime.UtcNow.AddDays(-7) }], true), ct);
         }, cancellationToken);
 
         var html = $"<script>window.opener.postMessage({{gmail:'linked'}},'{origin}');window.close();</script>";
