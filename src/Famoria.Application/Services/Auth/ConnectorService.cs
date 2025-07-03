@@ -11,7 +11,7 @@ public class ConnectorService : IConnectorService
         _repository = repository;
     }
 
-    public async Task LinkAsync(string famoriaUserId, string familyId, IntegrationProvider provider, string email, string accessToken, string? refreshToken, DateTime expiresAt, CancellationToken cancellationToken)
+    public async Task<UserLinkedAccountDto> LinkAsync(string famoriaUserId, string familyId, IntegrationProvider provider, string email, string accessToken, string? refreshToken, DateTime expiresAt, CancellationToken cancellationToken)
     {
         var encryptedAccessToken = _crypto.Encrypt(accessToken);
         var encryptedRefreshToken = refreshToken is null ? null : _crypto.Encrypt(refreshToken);
@@ -33,6 +33,8 @@ public class ConnectorService : IConnectorService
         };
 
         await _repository.UpsertAsync(linkedAccount, cancellationToken);
+
+        return new(familyId, email, encryptedAccessToken, encryptedRefreshToken, expiresAt);
     }
 
     public async Task<IEnumerable<UserLinkedAccountDto>> GetByAsync(IntegrationProvider provider, CancellationToken cancellationToken)

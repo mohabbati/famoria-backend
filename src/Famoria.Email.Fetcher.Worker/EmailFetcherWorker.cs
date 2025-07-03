@@ -26,7 +26,6 @@ public class EmailFetcherWorker : BackgroundService
             using var scope = _scopeFactory.CreateScope();
 
             var connectorService = scope.ServiceProvider.GetRequiredService<IConnectorService>();
-            var cryptoService = scope.ServiceProvider.GetRequiredService<IAesCryptoService>();
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
             foreach (var provider in Enum.GetValues<IntegrationProvider>())
@@ -44,11 +43,11 @@ public class EmailFetcherWorker : BackgroundService
                     if (cancellationToken.IsCancellationRequested) break;
                     try
                     {
-                        var decryptedAccessToken = cryptoService.Decrypt(account.AccessToken);
                         var command = new FetchEmailsCommand(
+                            provider,
                             account.FamilyId,
                             account.LinkedAccount,
-                            decryptedAccessToken,
+                            account.AccessToken,
                             account.LastFetchedAtUtc);
                         var processedCount = await mediator.Send(command, cancellationToken);
                         _logger.LogInformation(
@@ -57,14 +56,6 @@ public class EmailFetcherWorker : BackgroundService
                             account.LinkedAccount,
                             provider,
                             DateTimeOffset.Now);
-                        if (processedCount > 0)
-                        {
-                            await connectorService.UpdateLastFetchedAsync(
-                                provider,
-                                account.LinkedAccount,
-                                DateTime.UtcNow,
-                                cancellationToken);
-                        }
                     }
                     catch (Exception ex)
                     {
