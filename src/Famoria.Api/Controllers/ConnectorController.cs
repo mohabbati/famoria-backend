@@ -13,10 +13,11 @@ public class ConnectorController : CustomControllerBase
     private readonly IConfiguration _config;
     private readonly IBackgroundTaskQueue _taskQueue;
 
-    public ConnectorController(IMediator mediator,
-                               IConnectorService connector,
-                               IConfiguration config,
-                               IBackgroundTaskQueue taskQueue) : base(mediator)
+    public ConnectorController(
+        IMediator mediator,
+        IConnectorService connector,
+        IConfiguration config,
+        IBackgroundTaskQueue taskQueue) : base(mediator)
     {
         _connector = connector;
         _config = config;
