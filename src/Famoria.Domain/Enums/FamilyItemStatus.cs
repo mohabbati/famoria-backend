@@ -5,5 +5,6 @@ public enum FamilyItemStatus
     New,
     Eligible,
     Ignored,
-    Processed
+    Processed,
+    Error
 }
