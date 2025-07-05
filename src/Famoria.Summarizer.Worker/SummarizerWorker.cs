@@ -1,10 +1,10 @@
 namespace Famoria.Summarizer.Worker;
 
-public class Worker : BackgroundService
+public class SummarizerWorker : BackgroundService
 {
-    private readonly ILogger<Worker> _logger;
+    private readonly ILogger<SummarizerWorker> _logger;
 
-    public Worker(ILogger<Worker> logger)
+    public SummarizerWorker(ILogger<SummarizerWorker> logger)
     {
         _logger = logger;
     }
