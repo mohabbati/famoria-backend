@@ -1,12 +1,21 @@
 namespace Famoria.Domain.Entities;
 
-public class SummaryResult
-{
-    public required string Title { get; set; }
-    public string[] KeyPoints { get; set; } = [];
-    public string[] ActionItems { get; set; } = [];
-    public string Language { get; set; } = "en";
-    public string SourceTextHash { get; set; } = string.Empty;
-    public string? ModelUsed { get; set; }
-    public List<string>? Tags { get; set; }
-}
+/// <summary>
+/// Combined result structure stored on the FamilyItem for application use.
+/// </summary>
+public record SummaryResult(
+    /// <summary>Concise summary of the email content.</summary>
+    string Summary,
+    /// <summary>List of actionable items extracted from the email.</summary>
+    List<string> ActionItems,
+    /// <summary>Fixed set of labels for categorization.</summary>
+    List<string> Labels,
+    /// <summary>Free-form keywords or tags for search and filtering.</summary>
+    List<string> Keywords,
+    /// <summary>Priority level of the email.</summary>
+    string Priority,
+    /// <summary>Matched recipients or "Undetected".</summary>
+    List<string> Recipients,
+    /// <summary>Detection status (Matched, Undetected, Broadcast).</summary>
+    string DetectionStatus
+);
