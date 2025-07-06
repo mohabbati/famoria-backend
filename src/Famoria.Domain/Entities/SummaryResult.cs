@@ -17,5 +17,9 @@ public record SummaryResult(
     /// <summary>Matched recipients or "Undetected".</summary>
     List<string> Recipients,
     /// <summary>Detection status (Matched, Undetected, Broadcast).</summary>
-    string DetectionStatus
+    string DetectionStatus,
+    /// <summary>Reason for any AI processing error.</summary>
+    AiErrorReason AiErrorReason,
+    /// <summary>Number of retries attempted for AI processing.</summary>
+    int AiRetryCount
 );

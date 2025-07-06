@@ -7,9 +7,13 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.6" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.6" />
+        <PackageReference Include="Microsoft.SemanticKernel" Version="1.59.0" />
+        <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.59.0" />
+        <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.59.0" />
         <PackageReference Include="MimeKit" Version="4.13.0" />
         <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
         <PackageReference Include="Google.Apis.Gmail.v1" Version="1.70.0.3819" />
+        <PackageReference Include="PdfPig" Version="0.1.10" />
     </ItemGroup>
 
     <ItemGroup>

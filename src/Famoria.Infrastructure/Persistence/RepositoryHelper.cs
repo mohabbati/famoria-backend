@@ -2,9 +2,9 @@ using Famoria.Domain.Common;
 
 namespace Famoria.Infrastructure.Persistence;
 
-internal class RepositoryHelper
+public class RepositoryHelper
 {
-    internal static string DatabaseId { get; set; } = string.Empty;
+    public static string DatabaseId { get; set; } = string.Empty;
 
     internal static void SetEntityDefaults(EntityBase entity)
     {

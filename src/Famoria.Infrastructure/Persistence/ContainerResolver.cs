@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace Famoria.Infrastructure.Persistence;
 
-internal class ContainerResolver
+public class ContainerResolver
 {
     /// <summary>
     ///    A dictionary that contains the registered containers.
@@ -29,6 +29,18 @@ internal class ContainerResolver
         {
             throw new InvalidCastException($"The container for the type {nameof(entityType)} could not be resolved.");
         }
+
+        return container!;
+    }
+
+    /// <summary>
+    /// Resolves the name of the lease container for the specified entity type.
+    /// </summary>
+    /// <param name="entityType">The type of the entity for which the lease container name is resolved.</param>
+    /// <returns>A string representing the name of the lease container associated with the specified entity type.</returns>
+    public string ResolveLease(Type entityType)
+    {
+        var container = $"{ResolveName(entityType)}-leases";
 
         return container!;
     }

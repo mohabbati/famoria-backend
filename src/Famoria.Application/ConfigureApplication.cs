@@ -41,7 +41,7 @@ public static class ConfigureApplication
     {
         builder.Services.AddHttpClient<GmailEmailFetcher>();
         builder.Services.AddTransient<IEmailFetcher>(sp => sp.GetRequiredService<GmailEmailFetcher>());
-        builder.Services.AddTransient<IEmailPersistenceService, EmailPersistenceService>();
+        builder.Services.AddTransient<IEmailService, EmailService>();
 
         return builder;
     }

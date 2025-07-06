@@ -1,5 +1,3 @@
-using MediatR;
-
 using Microsoft.Extensions.Logging;
 
 namespace Famoria.Application.Features.FetchEmails;
@@ -7,12 +5,12 @@ namespace Famoria.Application.Features.FetchEmails;
 public class FetchEmailsHandler : IRequestHandler<FetchEmailsCommand, int>
 {
     private readonly IEmailFetcher _emailFetcher;
-    private readonly IEmailPersistenceService _emailPersistenceService;
+    private readonly IEmailService _emailPersistenceService;
     private readonly IAesCryptoService _cryptoService;
     private readonly IConnectorService _connectorService;
     private readonly ILogger<FetchEmailsHandler> _logger;
 
-    public FetchEmailsHandler(IEmailFetcher emailFetcher, IEmailPersistenceService emailPersistenceService, IAesCryptoService cryptoService, IConnectorService connectorService, ILogger<FetchEmailsHandler> logger)
+    public FetchEmailsHandler(IEmailFetcher emailFetcher, IEmailService emailPersistenceService, IAesCryptoService cryptoService, IConnectorService connectorService, ILogger<FetchEmailsHandler> logger)
     {
         _emailFetcher = emailFetcher;
         _emailPersistenceService = emailPersistenceService;

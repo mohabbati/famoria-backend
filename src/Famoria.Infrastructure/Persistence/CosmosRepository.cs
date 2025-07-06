@@ -12,6 +12,8 @@ internal sealed class CosmosRepository<TEntity> : ICosmosRepository<TEntity>
     private readonly CosmosLinqQuery _cosmosLinqQuery;
     private readonly ContainerResolver _containerResolver;
 
+    public Container Container => _container;
+
     public CosmosRepository(CosmosClient cosmosClient, ContainerResolver containerResolver, CosmosLinqQuery cosmosLinqQuery)
     {
         _container = cosmosClient.GetContainer(RepositoryHelper.DatabaseId, containerResolver.ResolveName(typeof(TEntity)));

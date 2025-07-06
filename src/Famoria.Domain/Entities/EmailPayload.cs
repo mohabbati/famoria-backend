@@ -4,7 +4,6 @@ public class EmailPayload : FamilyItemPayload
 {
     public override FamilyItemSource Source => FamilyItemSource.Email;
 
-    public DateTimeOffset ReceivedAt { get; set; }
     public string Subject { get; set; } = default!;
     public string SenderName { get; set; } = default!;
     public string SenderEmail { get; set; } = default!;
@@ -15,12 +14,8 @@ public class EmailPayload : FamilyItemPayload
     /// </summary>
     public string EmlBlobPath { get; set; } = default!;
 
-    public IList<AttachmentInfo>? Attachments { get; set; }
-
     public string? ProviderMessageId { get; set; }
     public string? ProviderConversationId { get; set; }
     public string? ProviderSyncToken { get; set; }
     public IList<string>? Labels { get; set; }
 }
-
-public record AttachmentInfo(string FileName, string MimeType, long SizeBytes, string BlobPath);

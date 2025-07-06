@@ -6,6 +6,5 @@ public class FamilyItem : AuditableEntity
     public required FamilyItemSource Source { get; set; }
     public required FamilyItemPayload Payload { get; set; }
     public FamilyItemStatus Status { get; set; } = FamilyItemStatus.New;
-    public string? FilterReason { get; set; }
     public SummaryResult? Summary { get; set; }
 }
