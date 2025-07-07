@@ -14,12 +14,14 @@ public class FamilyItemPayloadConverter : JsonConverter<FamilyItemPayload>
 
         var typeString = typeProp.GetString()?.ToLowerInvariant();
 
-        return typeString switch
+        var result = typeString switch
         {
             "email" => JsonSerializer.Deserialize(jsonDoc.RootElement, typeof(EmailPayload), FamoriaJsonContext.Default) as FamilyItemPayload,
             "calendar" => JsonSerializer.Deserialize(jsonDoc.RootElement, typeof(CalendarPayload), FamoriaJsonContext.Default) as FamilyItemPayload,
             _ => throw new JsonException($"Unknown payload type: {typeString}")
         };
+
+        return result;
     }
 
     public override void Write(Utf8JsonWriter writer, FamilyItemPayload value, JsonSerializerOptions options)

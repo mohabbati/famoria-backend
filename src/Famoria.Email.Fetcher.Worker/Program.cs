@@ -6,9 +6,8 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder
     .AddServiceDefaults()
-    .AddInfrastructure()
-    .AddApplication()
-    .AddEmailFetcherServices();
+    .AddEmailFetcherInfra()
+    .AddEmailFetcherApp();
 
 builder.Services.AddHostedService<EmailFetcherWorker>();
 

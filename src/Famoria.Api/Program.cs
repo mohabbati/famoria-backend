@@ -5,9 +5,8 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder
     .AddServiceDefaults()
-    .AddInfrastructure()
-    .AddApplication()
-    .AddEmailFetcherServices()
+    .AddEmailFetcherInfra()
+    .AddEmailFetcherApp()
     .AddApiServices();
 
 builder.Services.AddControllers();

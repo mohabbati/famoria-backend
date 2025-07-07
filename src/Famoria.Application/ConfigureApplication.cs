@@ -8,7 +8,7 @@ namespace Famoria.Application;
 
 public static class ConfigureApplication
 {
-    public static IHostApplicationBuilder AddApplication(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddApiApp(this IHostApplicationBuilder builder)
     {
         builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(ConfigureApplication))!));
         builder.Services.AddTransient<IUserService, UserService>();
@@ -16,6 +16,41 @@ public static class ConfigureApplication
         builder.Services.AddTransient<IConnectorService, ConnectorService>();
 
         builder.AddCryptoService();
+
+        builder.Services.AddHttpClient<GmailEmailFetcher>();
+        builder.Services.AddTransient<IEmailFetcher>(sp => sp.GetRequiredService<GmailEmailFetcher>());
+        builder.Services.AddTransient<IEmailService, EmailService>();
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddEmailFetcherApp(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(ConfigureApplication))!));
+        builder.Services.AddTransient<IUserService, UserService>();
+        builder.Services.AddTransient<IFamilyService, FamilyService>();
+        builder.Services.AddTransient<IConnectorService, ConnectorService>();
+
+        builder.AddCryptoService();
+
+        builder.Services.AddHttpClient<GmailEmailFetcher>();
+        builder.Services.AddTransient<IEmailFetcher>(sp => sp.GetRequiredService<GmailEmailFetcher>());
+        builder.Services.AddTransient<IEmailService, EmailService>();
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddSummarizerApp(this IHostApplicationBuilder builder)
+    {
+        //builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(ConfigureApplication))!));
+        //builder.Services.AddTransient<IUserService, UserService>();
+        builder.Services.AddTransient<IFamilyService, FamilyService>();
+        builder.Services.AddTransient<IConnectorService, ConnectorService>();
+
+        builder.AddCryptoService();
+
+        builder.Services.AddHttpClient<GmailEmailFetcher>();
+        builder.Services.AddTransient<IEmailService, EmailService>();
 
         return builder;
     }
@@ -32,17 +67,5 @@ public static class ConfigureApplication
             throw new InvalidOperationException("EncryptionKey not configured");
         var aesKey = Encoding.UTF8.GetBytes(key);
         builder.Services.AddSingleton<IAesCryptoService>(new AesCryptoService(aesKey));
-    }
-
-    /// <summary>
-    /// Registers services required by the email fetcher worker.
-    /// </summary>
-    public static IHostApplicationBuilder AddEmailFetcherServices(this IHostApplicationBuilder builder)
-    {
-        builder.Services.AddHttpClient<GmailEmailFetcher>();
-        builder.Services.AddTransient<IEmailFetcher>(sp => sp.GetRequiredService<GmailEmailFetcher>());
-        builder.Services.AddTransient<IEmailService, EmailService>();
-
-        return builder;
     }
 }

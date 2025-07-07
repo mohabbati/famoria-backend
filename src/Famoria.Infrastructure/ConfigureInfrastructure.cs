@@ -14,10 +14,35 @@ namespace Famoria.Infrastructure;
 
 public static class ConfigureInfrastructure
 {
-    public static IHostApplicationBuilder AddInfrastructure(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddApiInfra(this IHostApplicationBuilder builder)
     {
         builder.AddCosmosDb();
         builder.AddBlobContainer();
+
+        builder.Services.AddScoped<CosmosLinqQuery>();
+        builder.Services.AddScoped(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddEmailFetcherInfra(this IHostApplicationBuilder builder)
+    {
+        builder.AddCosmosDb();
+        builder.AddBlobContainer();
+
+        builder.Services.AddScoped<CosmosLinqQuery>();
+        builder.Services.AddScoped(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddSummarizerInfra(this IHostApplicationBuilder builder)
+    {
+        builder.AddCosmosDb();
+        builder.AddBlobContainer();
+
+        builder.Services.AddSingleton<CosmosLinqQuery>();
+        builder.Services.AddSingleton(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
 
         return builder;
     }
@@ -33,19 +58,18 @@ public static class ConfigureInfrastructure
                 { typeof(FamoriaUser), "users" },
                 { typeof(Family), "families" },
                 { typeof(UserLinkedAccount), "user-linked-accounts" },
-                { typeof(FamilyItem), "family-items" }
+                { typeof(FamilyItem), "family-items" },
+                { typeof(FamilyItemAudit), "family-items-audits" }
             },
             RegisteredPartitionKeys = new Dictionary<Type, PropertyInfo>()
             {
                 { typeof(FamoriaUser), typeof(FamoriaUser).GetProperty(nameof(FamoriaUser.Id))! },
                 { typeof(Family), typeof(Family).GetProperty(nameof(Family.Id))! },
                 { typeof(UserLinkedAccount), typeof(UserLinkedAccount).GetProperty(nameof(UserLinkedAccount.Provider))! },
-                { typeof(FamilyItem), typeof(FamilyItem).GetProperty(nameof(FamilyItem.FamilyId))! }
+                { typeof(FamilyItem), typeof(FamilyItem).GetProperty(nameof(FamilyItem.FamilyId))! },
+                { typeof(FamilyItemAudit), typeof(FamilyItemAudit).GetProperty(nameof(FamilyItem.FamilyId))! }
             }
         });
-
-        builder.Services.AddScoped<CosmosLinqQuery>();
-        builder.Services.AddScoped(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
 
         builder.AddAzureCosmosClient("cosmos",
             cosmosSettings =>
@@ -73,7 +97,7 @@ public static class ConfigureInfrastructure
         return builder;
     }
 
-    public static IHostApplicationBuilder AddBlobContainer(this IHostApplicationBuilder builder)
+    private static IHostApplicationBuilder AddBlobContainer(this IHostApplicationBuilder builder)
     {
         builder.AddAzureBlobContainerClient("blobs",
             blobsSettings =>
