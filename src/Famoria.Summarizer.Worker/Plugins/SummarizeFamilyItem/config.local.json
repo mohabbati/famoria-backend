@@ -1,0 +1,21 @@
+{
+    "name": "SummarizeFamilyItem",
+    "description": "Summarizes any family item (email, message, note) and extracts structured information.",
+    "template_format": "semantic-kernel",
+    "execution_settings": {
+        "default": {
+            "model_id": "llama3",
+            // Lower temperature (e.g. 0.2) ensures more deterministic and structured output.
+            // Ideal for summarization and JSON-based extraction where consistency is critical.
+            // If the model struggles with understanding subtle member matches, consider increasing to 0.3.
+            "temperature": 0.2,
+            "max_tokens": 512
+        }
+    },
+    "input_variables": [
+        {
+            "name": "promptJson",
+            "description": "Serialized JSON containing item content, metadata, and member tags"
+        }
+    ]
+}
