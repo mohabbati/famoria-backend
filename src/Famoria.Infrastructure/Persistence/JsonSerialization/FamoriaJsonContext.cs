@@ -9,6 +9,7 @@ namespace Famoria.Infrastructure.Persistence.JsonSerialization;
 [JsonSerializable(typeof(Family))]
 [JsonSerializable(typeof(FamilyItem))]
 [JsonSerializable(typeof(FamilyItem[]))]
+[JsonSerializable(typeof(FamilyItemAudit))]
 [JsonSerializable(typeof(EmailPayload))]
 [JsonSerializable(typeof(CalendarPayload))]
 [JsonSerializable(typeof(UserLinkedAccount))]

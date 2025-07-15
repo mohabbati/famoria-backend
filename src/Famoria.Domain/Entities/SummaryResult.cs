@@ -1,21 +1,21 @@
 namespace Famoria.Domain.Entities;
 
 /// <summary>
-/// Combined result structure stored on the FamilyItem for application use.
+/// Response schema returned by the LLM after processing the prompt.
 /// </summary>
+/// <param name="Summary">Concise summary (1–2 sentences) of the email content.</param>
+/// <param name="ActionItems">List of actionable items extracted from the content.</param>
+/// <param name="Keywords">Free-form keywords or tags extracted by the model.</param>
+/// <param name="Priority">Priority level decided by the model ("High" or "Normal").</param>
+/// <param name="Label">One of: "Material", "Event", "Reminder", or "Information".</param>
+/// <param name="MatchedMembers">List of recipients matched by name or tag (or empty).</param>
+/// <param name="DetectionStatus">Detection status: "Matched", "Undetected", or "Broadcast".</param>
 public record SummaryResult(
-    /// <summary>Concise summary of the email content.</summary>
     string Summary,
-    /// <summary>List of actionable items extracted from the email.</summary>
     List<string> ActionItems,
-    /// <summary>Fixed set of labels for categorization.</summary>
-    List<string> Labels,
-    /// <summary>Free-form keywords or tags for search and filtering.</summary>
     List<string> Keywords,
-    /// <summary>Priority level of the email.</summary>
-    string Priority,
-    /// <summary>Matched recipients or "Undetected".</summary>
-    List<string> Recipients,
-    /// <summary>Detection status (Matched, Undetected, Broadcast).</summary>
-    string DetectionStatus
+    PriorityLevel Priority,
+    string Label,
+    List<string> MatchedMembers,
+    DetectionStatusType DetectionStatus
 );

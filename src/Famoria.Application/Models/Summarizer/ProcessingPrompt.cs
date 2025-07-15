@@ -17,8 +17,8 @@ public record ProcessingPrompt(
     string Language,
     /// <summary>Main textual content extracted from the item.</summary>
     string ContentText,
-    /// <summary>Possible recipients or targets related to this item.</summary>
-    List<string> PossibleRecipients,
+    /// <summary>Dictionary mapping child names to their associated tags.</summary>
+    Dictionary<string, List<string>> MemberTagsByName,
     /// <summary>Additional metadata for extensibility (key-value pairs).</summary>
-    Dictionary<string, string>? Metadata = null
+    Dictionary<string, object> Metadata
 );

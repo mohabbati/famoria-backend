@@ -46,3 +46,4 @@ secrets.json
 # Local Cosmos DB / emulator / ollama data
 cosmosdb_emulator/
 ollama_models/
+*.DotSettings

@@ -67,7 +67,7 @@ public static class ConfigureInfrastructure
                 { typeof(Family), typeof(Family).GetProperty(nameof(Family.Id))! },
                 { typeof(UserLinkedAccount), typeof(UserLinkedAccount).GetProperty(nameof(UserLinkedAccount.Provider))! },
                 { typeof(FamilyItem), typeof(FamilyItem).GetProperty(nameof(FamilyItem.FamilyId))! },
-                { typeof(FamilyItemAudit), typeof(FamilyItemAudit).GetProperty(nameof(FamilyItem.FamilyId))! }
+                { typeof(FamilyItemAudit), typeof(FamilyItemAudit).GetProperty(nameof(FamilyItem.Id))! }
             }
         });
 
@@ -75,7 +75,7 @@ public static class ConfigureInfrastructure
             cosmosSettings =>
             {
                 cosmosSettings.DisableTracing = false;
-                cosmosSettings.Credential = new DefaultAzureCredential();
+                cosmosSettings.Credential = new WorkloadIdentityCredential();
                 cosmosSettings.AccountEndpoint = new Uri(builder.Configuration["CosmosDbSettings:AccountEndpoint"]!);
             },
             clientOptions =>
@@ -103,7 +103,7 @@ public static class ConfigureInfrastructure
             blobsSettings =>
             {
                 blobsSettings.DisableTracing = false;
-                blobsSettings.Credential = new DefaultAzureCredential();
+                blobsSettings.Credential = new WorkloadIdentityCredential();
                 blobsSettings.ServiceUri = new Uri(builder.Configuration["BlobContainerSettings:ServiceUri"]!);
                 blobsSettings.BlobContainerName = builder.Configuration["BlobContainerSettings:ContainerName"];
             },

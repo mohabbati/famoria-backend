@@ -6,9 +6,9 @@ namespace Famoria.Domain.Enums;
 public enum AiErrorReason
 {
     /// <summary>
-    /// Failed to parse the .eml or one of its attachments (e.g. corrupt PDF).
+    /// Default and any other unexpected failure.
     /// </summary>
-    AttachmentParseFail,
+    Unknown,
 
     /// <summary>
     /// The LLM call timed out (exceeded 30 s).
@@ -18,15 +18,13 @@ public enum AiErrorReason
     /// <summary>
     /// The LLM returned invalid or unparseable JSON.
     /// </summary>
-    AIInvalidJson,
+    AiInvalidJson,
 
     /// <summary>
-    /// The total attachment size exceeded the 20 MB guardrail.
+    /// Represents a permanent failure state.
     /// </summary>
-    OversizeBlob,
-
-    /// <summary>
-    /// Any other unexpected failure.
-    /// </summary>
-    Unknown
+    /// <remarks>This enumeration value is used to indicate that an operation has failed in a way that is not
+    /// recoverable. It is typically used in scenarios where retrying the operation is not expected to
+    /// succeed.</remarks>
+    FailedPermanent
 }
