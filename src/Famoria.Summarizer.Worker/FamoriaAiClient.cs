@@ -1,10 +1,9 @@
-using System.Text.Json;
 using Famoria.Application.Interfaces;
 using Famoria.Application.Models;
 using Famoria.Application.Models.Summarizer;
-
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using System.Text.Json;
 
 namespace Famoria.Summarizer.Worker;
 

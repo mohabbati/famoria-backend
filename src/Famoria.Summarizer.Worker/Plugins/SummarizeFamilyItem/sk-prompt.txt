@@ -8,7 +8,7 @@ Your tasks:
 • Extract up to 8 lower‑case keywords.
 • Set priority: "High" if metadata or content signals urgency; else "Normal".
 • Choose label ONLY from: "Material", "Event", "Reminder", "Information".
-• Use memberTagsByName and allMemberIdentifiers to decide:
+• Use memberTagsByName, allMemberIdentifiers, subject, and senderEmail to decide:
     – "Matched" if one member is clearly targeted → put their name in matchedMembers[]
     – "Broadcast" if it's for all → matchedMembers = []
     – "Undetected" if none match → matchedMembers = []

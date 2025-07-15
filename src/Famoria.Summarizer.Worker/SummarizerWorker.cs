@@ -4,9 +4,7 @@ using Famoria.Application.Models.Summarizer;
 using Famoria.Domain.Entities;
 using Famoria.Domain.Enums;
 using Famoria.Infrastructure.Persistence;
-
 using Microsoft.Azure.Cosmos;
-
 using System.Text.Json;
 
 using Container = Microsoft.Azure.Cosmos.Container;
@@ -18,13 +16,13 @@ using PriorityLevel = Famoria.Domain.Enums.PriorityLevel;
 
 namespace Famoria.Summarizer.Worker;
 
-public class SummarizerWorker : BackgroundService
+public class SummarizerWorker(IServiceScopeFactory scopeFactory, ILogger<SummarizerWorker> logger) : BackgroundService
 {
     private const int AuditTtl = 604800; // 7 days (7 × 24 × 60 × 60 = 604,800 seconds)
     private const int MaxAiReties = 3;
 
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<SummarizerWorker> _logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly ILogger<SummarizerWorker> _logger = logger;
 
     private CosmosClient _cosmosClient = default!;
     private ContainerResolver _containerResolver = default!;
@@ -34,15 +32,9 @@ public class SummarizerWorker : BackgroundService
     private IFamoriaAiClient _aiClient = default!;
     private IEmailService _emailService = default!;
 
-    public SummarizerWorker(IServiceScopeFactory scopeFactory, ILogger<SummarizerWorker> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-    }
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using IServiceScope scope = _scopeFactory.CreateScope();
 
         _cosmosClient = scope.ServiceProvider.GetRequiredService<CosmosClient>();
         _containerResolver = scope.ServiceProvider.GetRequiredService<ContainerResolver>();
@@ -69,7 +61,7 @@ public class SummarizerWorker : BackgroundService
     // this delegate will get batches of new/updated items
     private async Task HandleChangesAsync(IReadOnlyCollection<FamilyItem> changes, CancellationToken ct)
     {
-        foreach (var item in changes)
+        foreach (FamilyItem item in changes)
             await ProcessItemAsync(item, ct);
     }
 
